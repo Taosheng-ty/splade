@@ -21,8 +21,6 @@ config:
       T: 50000
       targeted_rep: rep
       reg: FLOPS
-  index_retrieve_batch_size: 50
-  max_length: 128
-  checkpoint_dir: models/cocondenser_ensemble_distil/checkpoint
-  index_dir: models/cocondenser_ensemble_distil/index
-  out_dir: models/cocondenser_ensemble_distil/out
+  checkpoint_dir: experiments/cocondenser_ensemble_distil/checkpoint
+  index_dir: experiments/cocondenser_ensemble_distil/index
+  out_dir: experiments/cocondenser_ensemble_distil/out

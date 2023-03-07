@@ -4,6 +4,7 @@ Version: 2.1
 Summary: SParse Lexical AnD Expansion Model for First Stage Ranking
 Home-page: https://github.com/naver/splade
 License: Creative Commons Attribution-NonCommercial-ShareAlike
+Platform: UNKNOWN
 Classifier: Intended Audience :: Science/Research
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
@@ -311,3 +312,5 @@ SPLADE is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike
 
 You should have received a copy of the license along with this work. If not,
 see http://creativecommons.org/licenses/by-nc-sa/4.0/ .
+
+

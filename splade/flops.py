@@ -54,7 +54,6 @@ def flops(exp_dict: DictConfig):
     query_index = evaluator.index(q_loader)["index"]
     lexical_queries_index_dist = create_index_dist(query_index)
     lexical_index_dist = create_index_dist(doc_index)
-    
 
     p_d = estim_act_prob(lexical_index_dist, collection_size=doc_index.nb_docs(), voc_size=out_dim)
     p_q = estim_act_prob(lexical_queries_index_dist, collection_size=len(q_collection), voc_size=out_dim)

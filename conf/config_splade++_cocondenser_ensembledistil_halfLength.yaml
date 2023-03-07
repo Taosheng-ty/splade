@@ -1,0 +1,30 @@
+# FILES
+defaults: # (these specify which config FILES to use)
+  ############## TRAIN ###################################
+  - train/config: splade
+  - train/data: distil_from_ensemble
+  - train/model: splade_cocondenser
+  ############## INDEX ###################################
+  - index: msmarco
+  ############## RETRIEVE ################################
+  - retrieve_evaluate: all
+  ############### FLOPS ##################################
+  - flops: msmarco
+
+# Direct PARAMETER setting
+config:
+  loss: DistilMarginMSE
+  regularizer:
+    FLOPS:
+      lambda_q: 0.5
+      lambda_d: 0.4
+      T: 50000
+      targeted_rep: rep
+      reg: FLOPS
+  train_batch_size: 96 
+  eval_batch_size: 400
+  index_retrieve_batch_size: 300
+  max_length: 256
+  checkpoint_dir: experiments/halfLen/checkpoint
+  index_dir: experiments/halfLen/out-256Len/index
+  out_dir: experiments/halfLen/out-256Len/out
