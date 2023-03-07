@@ -1,11 +1,11 @@
 import json
 import os
 from collections import defaultdict
-
+import numpy as np
 import torch
 from omegaconf import open_dict
 from tqdm.auto import tqdm
-
+import psutil
 from ..tasks import amp
 from ..tasks.base.trainer import TrainerIter
 from ..utils.metrics import init_eval
@@ -51,6 +51,7 @@ class TransformerTrainer(TrainerIter):
 
         for i in tqdm(range(self.start_iteration, self.nb_iterations + 1)):
             self.model.train()  # train model
+            # print('RAM Used (GB):', psutil.virtual_memory()[3]/1000000000,f"iteration {i}",flush=True)
             # self.optimizer.zero_grad()
             try:
                 batch = next(self.train_iterator)
@@ -64,6 +65,20 @@ class TransformerTrainer(TrainerIter):
                     batch[k] = v.to(self.device)
                 out = self.forward(batch)  # out is a dict (we just feed it to the loss)
                 loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
+                # if i%10==1:
+                #     topkk=20
+                #     print("query token",batch["q_input_ids"][0])
+                #     ind=(-out["pos_q_rep"][0]).argsort()[:topkk]
+                #     sizeNonzero=torch.where(out["pos_q_rep"][0]>0)[0].shape
+                #     print("query representation",ind, f"the total nonzero is {sizeNonzero}")
+                #     batchn=batch["q_input_ids"][0].cpu().numpy()
+                #     indn=ind.cpu().numpy()
+                #     inter=np.intersect1d(batchn, indn)
+                #     interSize=np.intersect1d(batchn, indn).shape[0]
+                #     print(f"there are {interSize} of tokens are in the top {topkk} of predicted tokens and they are {inter}")
+                    
+                #     print("stop here")
+                    
                 moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
                 # training moving average for logging
                 if self.regularizer is not None:

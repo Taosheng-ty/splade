@@ -25,8 +25,8 @@ config:
   index_dir: experiments/idf/index
   out_dir: experiments/idf/out
   matching_type: PriorSpladeV2
-  train_batch_size: 32 
+  train_batch_size: 64 
   eval_batch_size: 200
   index_retrieve_batch_size: 150
-  max_length: 128
+  max_length: 256
   nb_iterations: 100000

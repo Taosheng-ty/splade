@@ -13,7 +13,13 @@ defaults:  # (these specify which config FILES to use)
 
 # Direct PARAMETER setting
 config:  # to be provided for each run
-  checkpoint_dir: ???
-  index_dir: ???
-  out_dir: ???
-  fp16: false
+  checkpoint_dir: experiments/debugg/checkpoint
+  index_dir: experiments/debugg/index
+  out_dir: experiments/debugg/out
+  nb_iterations: 100
+  record_frequency: 10000
+  train_monitoring_freq: 1000
+  max_length: 128
+  train_batch_size: 16
+  warmup_steps: 100
+  matching_type: PriorSpladeV2

@@ -12,6 +12,7 @@ class Evaluator:
         self.model = model
         self.config = config
         self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        print(f"avalialbe devices is {self.device}, count of devices is {torch.cuda.device_count()}")
         if restore:
             if self.device == torch.device("cuda"):
                 if "pretrained_no_yamlconfig" not in config or not config["pretrained_no_yamlconfig"]:

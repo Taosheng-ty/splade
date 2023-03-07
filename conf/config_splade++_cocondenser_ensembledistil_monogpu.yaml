@@ -23,8 +23,6 @@ config:
       T: 50000
       targeted_rep: rep
       reg: FLOPS
-  index_retrieve_batch_size: 50
-  max_length: 64
   checkpoint_dir: models/cocondenser_ensemble_distil_monogpu/checkpoint
   index_dir: models/cocondenser_ensemble_distil_monogpu/index
   out_dir: models/cocondenser_ensemble_distil_monogpu/out

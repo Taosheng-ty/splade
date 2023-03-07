@@ -196,7 +196,7 @@ class PriorSpladeV2(Splade):
     """SPLADE model
     """
 
-    def __init__(self,idfpkl="/home/taoyang/research/research_everyday/projects/DR/splade/splade/splade/models/idf-tokenid.pkl",*param,**kwparam):
+    def __init__(self,idfpkl="/home/collab/u1368791/largefiles/TaoFiles/splade/splade/models/idf-tokenid.pkl",*param,**kwparam):
         super().__init__(*param,**kwparam)
         with open(idfpkl, 'rb') as f:
             idf = pickle.load(f)

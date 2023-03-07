@@ -8,7 +8,7 @@ import numba
 import numpy as np
 import torch
 from tqdm.auto import tqdm
-
+import psutil
 from ..indexing.inverted_index import IndexDictOfArray
 from ..losses.regularization import L0
 from ..tasks.base.evaluator import Evaluator
@@ -35,6 +35,7 @@ class SparseIndexing(Evaluator):
         count = 0
         with torch.no_grad():
             for t, batch in enumerate(tqdm(collection_loader)):
+                # print('RAM Used (GB):', psutil.virtual_memory()[3]/1000000000,f"iteration {t}",flush=True)
                 inputs = {k: v.to(self.device) for k, v in batch.items() if k not in {"id"}}
                 if self.is_query:
                     batch_documents = self.model(q_kwargs=inputs)["q_rep"]
