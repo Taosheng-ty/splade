@@ -33,9 +33,9 @@ for tokenSent in tqdm(tokenCop,desc="processing data"):
         idf[token]+=1
         idfToken[InverseVocab[token]]+=1
 minFreq=10
-for key in idf:
-    if idf[key]<minFreq:
-        idf[key]=minFreq
+# for key in idf:
+#     if idf[key]<minFreq:
+#         idf[key]=minFreq
 with open('output/idf-tokenid.pkl', 'wb') as f:
     pickle.dump(idf, f)
 with open('output/idf-token.pkl', 'wb') as f:

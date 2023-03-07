@@ -50,7 +50,7 @@ class SparseIndexing(Evaluator):
                     batch_ids = [id_dict[x] for x in batch_ids]
                 count += len(batch_ids)
                 doc_ids.extend(batch_ids)
-                self.sparse_index.add_batch_document(row.cpu().numpy(), col.cpu().numpy(), data.cpu().numpy(),
+                self.sparse_index.add_batch_document(row.cpu().numpy(), col.cpu().numpy(), data.cpu().numpy().astype("float16"),
                                                      n_docs=len(batch_ids))
         if self.compute_stats:
             stats = {key: value / len(collection_loader) for key, value in stats.items()}
