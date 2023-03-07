@@ -14,7 +14,7 @@ from .utils.index_figure import index_figure
 def train_index_retrieve(exp_dict: DictConfig):
     hydra_chdir(exp_dict)
 
-    # train(exp_dict)
+    train(exp_dict)
     index(exp_dict)
     retrieve_evaluate(exp_dict)
     flops(exp_dict)

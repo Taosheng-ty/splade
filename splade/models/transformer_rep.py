@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModel
 
 from ..tasks.amp import NullContextManager
 from ..utils.utils import generate_bow, normalize
-
+import pickle
 """
 we provide abstraction classes from which we can easily derive representation-based models with transformers like SPLADE
 with various options (one or two encoders, freezing one encoder etc.) 
@@ -192,3 +192,28 @@ class SpladeDoc(SiameseBase):
                 values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
                 return values
                 # 0 masking also works with max because all activations are positive
+class PriorSpladeV2(Splade):
+    """SPLADE model
+    """
+
+    def __init__(self,idfpkl="/home/taoyang/research/research_everyday/projects/DR/splade/splade/splade/models/idf-tokenid.pkl",*param,**kwparam):
+        super().__init__(*param,**kwparam)
+        with open(idfpkl, 'rb') as f:
+            idf = pickle.load(f)
+        idfTensor=torch.tensor(list(idf.values()),dtype=torch.float32)
+        idfTensor=torch.clip(idfTensor,10,10**6)
+        self.idf=torch.nn.parameter.Parameter(idfTensor,requires_grad=False)
+        # self.output_dim = self.transformer_rep.transformer.config.vocab_size  # output dim = vocab size = 30522 for BERT
+        # assert agg in ("sum", "max")
+        # self.agg = agg
+
+    def encode(self, tokens, is_q):
+        out = self.encode_(tokens, is_q)["logits"]  # shape (bs, pad_len, voc_size)
+        selectedIdf=self.idf[tokens["input_ids"]]
+        out=out/torch.log(selectedIdf[:,:,None])
+        if self.agg == "sum":
+            return torch.sum(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+        else:
+            values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+            values=values/torch.log(self.idf)*torch.log(self.idf.min())
+            return values

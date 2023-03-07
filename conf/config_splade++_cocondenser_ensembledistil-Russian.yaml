@@ -1,11 +1,9 @@
-# @package _global_
-
 # FILES
 defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
-  - train/config: splade_monogpu
-  - train/data: distil_from_ensemble
-  - train/model: splade_cocondenser
+  - train/config: splade
+  - train/data: distil_from_ensembleRussian
+  - train/model: splade_russian
   ############## INDEX ###################################
   - index: msmarco
   ############## RETRIEVE ################################
@@ -24,7 +22,7 @@ config:
       targeted_rep: rep
       reg: FLOPS
   index_retrieve_batch_size: 50
-  max_length: 64
-  checkpoint_dir: models/cocondenser_ensemble_distil_monogpu/checkpoint
-  index_dir: models/cocondenser_ensemble_distil_monogpu/index
-  out_dir: models/cocondenser_ensemble_distil_monogpu/out
+  max_length: 16
+  checkpoint_dir: models/russian/checkpoint
+  index_dir: models/russian/index
+  out_dir: models/russian/out

@@ -4,4 +4,10 @@
 *.pkl
 model_ckpt/
 ckpt/
+output/output*/
 output/
+output*
+data/*marco
+data/
+experiments/
+models/
