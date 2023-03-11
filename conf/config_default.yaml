@@ -15,11 +15,12 @@ defaults:  # (these specify which config FILES to use)
 config:  # to be provided for each run
   checkpoint_dir: experiments/debugg/checkpoint
   index_dir: experiments/debugg/index
-  out_dir: experiments/debugg/out
-  nb_iterations: 100
-  record_frequency: 10000
-  train_monitoring_freq: 1000
-  max_length: 128
-  train_batch_size: 16
-  warmup_steps: 100
-  matching_type: PriorSpladeV2
+  out_dir: experiments/debugg/out2
+  matching_type: Exclude_CLS_SEP_Splade
+  # nb_iterations: 100
+  # record_frequency: 10000
+  # train_monitoring_freq: 1000
+  # max_length: 128
+  # train_batch_size: 16
+  # warmup_steps: 100
+  # matching_type: PriorSplade

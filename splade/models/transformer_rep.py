@@ -217,3 +217,115 @@ class PriorSpladeV2(Splade):
             values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
             values=values/torch.log(self.idf)*torch.log(self.idf.min())
             return values
+        
+class Exclude_CLS_SEP_Splade(Splade):
+    """SPLADE model
+    """
+    def __init__(self,*param,**kwparam):
+        super().__init__(*param,**kwparam)
+        # with open(idfpkl, 'rb') as f:
+        #     idf = pickle.load(f)
+        # idfTensor=torch.tensor(list(idf.values()),dtype=torch.float32)
+        # idfTensor=torch.clip(idfTensor,10,10**6)
+        # self.idf=torch.nn.parameter.Parameter(idfTensor,requires_grad=False)
+        # self.output_dim = self.transformer_rep.transformer.config.vocab_size  # output dim = vocab size = 30522 for BERT
+        # assert agg in ("sum", "max")
+        # self.agg = agg
+    def encode(self, tokens, is_q):
+        out = self.encode_(tokens, is_q)["logits"]  # shape (bs, pad_len, voc_size)
+        out=out[:,1:-1,:]  ##cls and SEP usually cause much error
+        if self.agg == "sum":
+            return torch.sum(torch.log(1 + torch.relu(out)) * tokens["attention_mask"][:,1:-1].unsqueeze(-1), dim=1)
+        else:
+            values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"][:,1:-1].unsqueeze(-1), dim=1)
+            argmax=torch.argmax(torch.log(1 + torch.relu(out)) * tokens["attention_mask"][:,1:-1].unsqueeze(-1), dim=1)
+            return values,argmax
+    def forward(self, **kwargs):
+        """forward takes as inputs 1 or 2 dict
+        "d_kwargs" => contains all inputs for document encoding
+        "q_kwargs" => contains all inputs for query encoding ([OPTIONAL], e.g. for indexing)
+        """
+        with torch.cuda.amp.autocast() if self.fp16 else NullContextManager():
+            out = {}
+            do_d, do_q = "d_kwargs" in kwargs, "q_kwargs" in kwargs
+            if do_d:
+                d_rep,argmax = self.encode(kwargs["d_kwargs"], is_q=False)
+                if self.cosine:  # normalize embeddings
+                    d_rep = normalize(d_rep)
+                out.update({"d_rep": d_rep})
+            if do_q:
+                q_rep, argmax = self.encode(kwargs["q_kwargs"], is_q=True)
+                if self.cosine:  # normalize embeddings
+                    q_rep = normalize(q_rep)
+                out.update({"q_rep": q_rep})
+                out.update({"argmax": argmax})
+            if do_d and do_q:
+                if "nb_negatives" in kwargs:
+                    # in the cas of negative scoring, where there are several negatives per query
+                    bs = q_rep.shape[0]
+                    d_rep = d_rep.reshape(bs, kwargs["nb_negatives"], -1)  # shape (bs, nb_neg, out_dim)
+                    q_rep = q_rep.unsqueeze(1)  # shape (bs, 1, out_dim)
+                    score = torch.sum(q_rep * d_rep, dim=-1)  # shape (bs, nb_neg)
+                else:
+                    if "score_batch" in kwargs:
+                        score = torch.matmul(q_rep, d_rep.t())  # shape (bs_q, bs_d)
+                    else:
+                        score = torch.sum(q_rep * d_rep, dim=1, keepdim=True)  # shape (bs, )
+                out.update({"score": score})
+        return out
+class DebugSplade(Splade):
+    """SPLADE model
+    """
+    def __init__(self,*param,**kwparam):
+        super().__init__(*param,**kwparam)
+        # with open(idfpkl, 'rb') as f:
+        #     idf = pickle.load(f)
+        # idfTensor=torch.tensor(list(idf.values()),dtype=torch.float32)
+        # idfTensor=torch.clip(idfTensor,10,10**6)
+        # self.idf=torch.nn.parameter.Parameter(idfTensor,requires_grad=False)
+        # self.output_dim = self.transformer_rep.transformer.config.vocab_size  # output dim = vocab size = 30522 for BERT
+        # assert agg in ("sum", "max")
+        # self.agg = agg
+    def encode(self, tokens, is_q):
+        out = self.encode_(tokens, is_q)["logits"]  # shape (bs, pad_len, voc_size)
+        # out=out[:,1:-1,:]  ##cls and SEP usually cause much error
+        if self.agg == "sum":
+            return torch.sum(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+        else:
+            values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+            argmax=torch.argmax(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+            return values,argmax
+    def forward(self, **kwargs):
+        """forward takes as inputs 1 or 2 dict
+        "d_kwargs" => contains all inputs for document encoding
+        "q_kwargs" => contains all inputs for query encoding ([OPTIONAL], e.g. for indexing)
+        """
+        with torch.cuda.amp.autocast() if self.fp16 else NullContextManager():
+            out = {}
+            do_d, do_q = "d_kwargs" in kwargs, "q_kwargs" in kwargs
+            if do_d:
+                d_rep,argmax = self.encode(kwargs["d_kwargs"], is_q=False)
+                if self.cosine:  # normalize embeddings
+                    d_rep = normalize(d_rep)
+                out.update({"d_rep": d_rep})
+                out.update({"argmax": argmax})
+            if do_q:
+                q_rep, argmax = self.encode(kwargs["q_kwargs"], is_q=True)
+                if self.cosine:  # normalize embeddings
+                    q_rep = normalize(q_rep)
+                out.update({"q_rep": q_rep})
+                out.update({"argmax": argmax})
+            if do_d and do_q:
+                if "nb_negatives" in kwargs:
+                    # in the cas of negative scoring, where there are several negatives per query
+                    bs = q_rep.shape[0]
+                    d_rep = d_rep.reshape(bs, kwargs["nb_negatives"], -1)  # shape (bs, nb_neg, out_dim)
+                    q_rep = q_rep.unsqueeze(1)  # shape (bs, 1, out_dim)
+                    score = torch.sum(q_rep * d_rep, dim=-1)  # shape (bs, nb_neg)
+                else:
+                    if "score_batch" in kwargs:
+                        score = torch.matmul(q_rep, d_rep.t())  # shape (bs_q, bs_d)
+                    else:
+                        score = torch.sum(q_rep * d_rep, dim=1, keepdim=True)  # shape (bs, )
+                out.update({"score": score})
+        return out
