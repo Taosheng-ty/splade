@@ -7,8 +7,7 @@ ckpt/
 output/output*/
 output/
 output*
-data/*marco
-data/
+data/*
 experiments/
 models/
 naver
