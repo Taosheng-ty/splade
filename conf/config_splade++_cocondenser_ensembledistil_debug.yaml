@@ -21,6 +21,11 @@ config:
       T: 50000
       targeted_rep: rep
       reg: FLOPS
-  checkpoint_dir: experiments/debugNew/checkpoint
-  index_dir: experiments/debugNew/index
-  out_dir: experiments/debugNew/out
+  checkpoint_dir: experiments/debugNew1/checkpoint
+  index_dir: experiments/debugNew1/index
+  out_dir: experiments/debugNew1/out
+  train_batch_size: 64 
+  eval_batch_size: 200
+  index_retrieve_batch_size: 150
+  max_length: 128
+  nb_iterations: 100000

@@ -65,20 +65,8 @@ class TransformerTrainer(TrainerIter):
                     batch[k] = v.to(self.device)
                 out = self.forward(batch)  # out is a dict (we just feed it to the loss)
                 loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
-                # if i%10==1:
-                #     topkk=20
-                #     print("query token",batch["q_input_ids"][0])
-                #     ind=(-out["pos_q_rep"][0]).argsort()[:topkk]
-                #     sizeNonzero=torch.where(out["pos_q_rep"][0]>0)[0].shape
-                #     print("query representation",ind, f"the total nonzero is {sizeNonzero}")
-                #     batchn=batch["q_input_ids"][0].cpu().numpy()
-                #     indn=ind.cpu().numpy()
-                #     inter=np.intersect1d(batchn, indn)
-                #     interSize=np.intersect1d(batchn, indn).shape[0]
-                #     print(f"there are {interSize} of tokens are in the top {topkk} of predicted tokens and they are {inter}")
-                    
-                #     print("stop here")
-                    
+                
+                
                 moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
                 # training moving average for logging
                 if self.regularizer is not None:
@@ -124,6 +112,10 @@ class TransformerTrainer(TrainerIter):
             # when multiple GPUs, we need to aggregate the loss from the different GPUs (that's why the .mean())
             # see https://medium.com/huggingface/training-larger-batches-practical-tips-on-1-gpu-multi-gpu-distributed-setups-ec88c3e51255
             # for gradient accumulation  # TODO: check if everything works with gradient accumulation
+            # if self.config
+            if "lambda_psuedo" in self.config and self.config["lambda_psuedo"]>0:
+                psuedo_loss=-((out['pos_q_rep']*(batch["topic_Rep"])).sum(dim=1)).mean()
+                loss+=psuedo_loss*self.config["lambda_psuedo"]
             loss = loss / self.config["gradient_accumulation_steps"]
             # perform gradient update:
             mpm.backward(loss)

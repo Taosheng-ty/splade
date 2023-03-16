@@ -1,0 +1,44 @@
+# FILES
+defaults: # (these specify which config FILES to use)
+  ############## TRAIN ###################################
+  - train/config: splade
+  - train/data: distil_from_ensemble
+  - train/model: splade_cocondenser
+  ############## INDEX ###################################
+  - index: msmarco
+  ############## RETRIEVE ################################
+  - retrieve_evaluate: all
+  ############### FLOPS ##################################
+  - flops: msmarco
+
+# Direct PARAMETER setting
+config:
+  loss: DistilMarginMSE
+  regularizer:
+    FLOPS:
+      lambda_q: 0.5
+      lambda_d: 0.4
+      T: 50000
+      targeted_rep: rep
+      reg: FLOPS
+  checkpoint_dir: naver/splade_distil_CoCodenser_large/
+  index_dir: experiments/splade_distil_CoCodenser_large/index
+  out_dir: experiments/splade_distil_CoCodenser_large/out
+  train_batch_size: 64 
+  eval_batch_size: 200
+  index_retrieve_batch_size: 150
+  max_length: 256
+  nb_iterations: 100000
+  # eval_metric: [
+  #                [ ndcg_cut ],
+  #                [ mrr_10, recall ],
+  #                [ ndcg_cut ],
+  #                [ mrr_10, recall ] ]
+  # matching_type: Exclude_CLS_SEP_Splade
+# data:
+#       Q_COLLECTION_PATH: [data/msmarco/TREC_DL_2019/queries_2019,
+#                        data/msmarco/TREC_DL_2020/queries_2020 ]
+#       EVAL_QREL_PATH: [data/msmarco/TREC_DL_2019/qrel.json,
+#                         data/msmarco/TREC_DL_2019/qrel_binary.json,
+#                         data/msmarco/TREC_DL_2020/qrel.json,
+#                         data/msmarco/TREC_DL_2020/qrel_binary.json ]

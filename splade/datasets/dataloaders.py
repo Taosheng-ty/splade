@@ -7,7 +7,7 @@ from torch.utils.data.dataloader import DataLoader
 from transformers import AutoTokenizer
 
 from ..utils.utils import rename_keys
-
+import numpy as np
 
 class DataLoaderWrapper(DataLoader):
     def __init__(self, tokenizer_type, max_length, **kwargs):
@@ -52,7 +52,7 @@ class SiamesePairsDataLoader(DataLoaderWrapper):
         return {k: torch.tensor(v) for k, v in sample.items()}
 
 
-class DistilSiamesePairsDataLoader(DataLoaderWrapper):
+class      DistilSiamesePairsDataLoader(DataLoaderWrapper):
 
     def collate_fn(self, batch):
         """
@@ -82,6 +82,43 @@ class DistilSiamesePairsDataLoader(DataLoaderWrapper):
                   "teacher_p_score": s_pos, "teacher_n_score": s_neg}
         return {k: torch.tensor(v) for k, v in sample.items()}
 
+
+class      DistilSiamesePairsDataLoaderWithPsuedo(DataLoaderWrapper):
+
+    def collate_fn(self, batch):
+        """
+        """
+        q, d_pos, d_neg, s_pos, s_neg ,topic_Rep= zip(*batch)
+        topic_Rep=np.stack(topic_Rep)
+        q = self.tokenizer(list(q),
+                           add_special_tokens=True,
+                           padding="longest",  # pad to max sequence length in batch
+                           truncation="longest_first",  # truncates to self.max_length
+                           max_length=self.max_length,
+                           return_attention_mask=True)
+        d_pos = self.tokenizer(list(d_pos),
+                               add_special_tokens=True,
+                               padding="longest",  # pad to max sequence length in batch
+                               truncation="longest_first",  # truncates to self.max_length
+                               max_length=self.max_length,
+                               return_attention_mask=True)
+        # Do you want to handle this in a different class
+        d_neg = self.tokenizer(list(d_neg),
+                               add_special_tokens=True,
+                               padding="longest",  # pad to max sequence length in batch
+                               truncation="longest_first",  # truncates to self.max_length
+                               max_length=self.max_length,
+                               return_attention_mask=True)
+
+        sample = {**rename_keys(q, "q"), **rename_keys(d_pos, "pos"), **rename_keys(d_neg, "neg"),
+                  "teacher_p_score": s_pos, "teacher_n_score": s_neg,"topic_Rep":topic_Rep}
+        output={}
+        for k, v in sample.items():
+            if torch.is_tensor(v):
+                output[k]=v
+            else:
+                output[k]=torch.tensor(v) 
+        return output
 
 class CollectionDataLoader(DataLoaderWrapper):
     """

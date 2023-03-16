@@ -4,13 +4,13 @@ from tqdm.auto import tqdm
 import numpy as np
 import gzip,pickle
 from collections import defaultdict
-import torch
 from collections import Counter
+
 scriptPath=os.path.dirname(os.path.abspath(__file__))
 os.chdir(scriptPath+"/..")
 model_type_or_dir="distilbert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
-numToken=tokenizer.vocab_size
+
 
 
 tokenizationPath='output/tokenCop.pkl'
@@ -36,41 +36,10 @@ else:
         tokenCop+=list(tokenizer(listCorp[idx*batch:(idx+1)*batch], return_tensors="np")['input_ids'])
     with open('output/tokenCop.pkl', 'wb') as f:
         pickle.dump(tokenCop, f)
-
+# tokenCop=tokenizer(listCorp, return_tensors="np")['input_ids']
 # InverseVocab={key[1]:key[0] for ind,key in enumerate(tokenizer.vocab.items())}
 # numToken=len(tokenizer.vocab.keys())
 
-    
-# log_idf={ind:0 for ind in range(numToken)}
-# # log_idf=torch.zeros(numToken)
-# log_idfToken={key:0 for key in tokenizer.vocab}
-# from collections import Counter
-# for tokenSent in tqdm(tokenCop[:5],desc="processing data corpus"):
-#     FreqTokenSent=Counter(tokenSent)
-#     for token in FreqTokenSent:
-#         freq=FreqTokenSent[token]
-#         log_idf[token]+=np.log(freq)
-#         log_idfToken[InverseVocab[token]]+=np.log(freq)
-# with open('output/corpus-tf-log-tensor-dict.pkl', 'wb') as f:
-#     pickle.dump(log_idf, f)
-# with open('output/log-corpus-tf-token.pkl', 'rb') as f:
-#     pickle.dump(log_idfToken, f)
-
-
-# with open('output/log-corpus-tf-tokenid.pkl', 'rb') as f:
-#     log_idf=pickle.load(f)
-# indices=list(log_idf.keys())
-# val=list(log_idf.values())
-# numUniqToken=len(indices)
-# # indices.append[0 for i in cortf]
-# corpusEmb=torch.zeros(numUniqToken)
-# corpusEmb[indices]=torch.tensor(val,dtype=torch.float32)
-# with open('output/corpus-tf-log-tensor-dict.pkl', 'wb') as f:
-#     pickle.dump(corpusEmb, f)
-
-
-
-TopK=10
 dataset_path="data/msmarco/hard_negatives_scores/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz"
 with gzip.open(dataset_path, "rb") as fIn:
     scores_dict = pickle.load(fIn)
@@ -93,25 +62,4 @@ for q_id in tqdm(q_ids,desc="processing data"):
 
 with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'wb') as f:
     pickle.dump(log_idf, f)
-
-
-with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'rb') as f:
-    log_idf=pickle.load(f)
-    
-indices=[[],[]]
-val=[]
-count_q=0
-convertedMap={}
-q_ids=list(log_idf.keys())
-for q_id in tqdm(q_ids,desc="processing data2"):
-    # localTf=log_idf[q_id]
-    for tokenid in log_idf[q_id]:
-        indices[0].append(count_q)
-        indices[1].append(tokenid)
-        val.append(log_idf[q_id][tokenid])
-    convertedMap[q_id]=count_q
-    count_q+=1
-s = torch.sparse_coo_tensor(indices, val, (len(q_ids), numToken))    
-
-with open(f'output/log-doc-tf-tensor-dict-topk-{TopK}.pkl', 'wb') as f:
-    pickle.dump([convertedMap,s], f)
+        

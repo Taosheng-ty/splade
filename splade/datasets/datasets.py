@@ -6,7 +6,8 @@ import random
 
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
-
+import torch
+import numpy as np
 
 class PairsDatasetPreLoad(Dataset):
     """
@@ -160,3 +161,32 @@ class MsMarcoHardNegatives(Dataset):
         d_pos = self.document_dataset[positive][1]
         d_neg = self.document_dataset[str(negative)][1]
         return q.strip(), d_pos.strip(), d_neg.strip(), float(s_pos), float(s_neg)
+
+
+
+class MsMarcoHardNegativesWithPsuedo(MsMarcoHardNegatives):
+    """
+    class used to work with the hard-negatives dataset from sentence transformers
+    see: https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives
+    """
+    def __init__(self,queryRepFile,corpusRepFile,psuedo_topk=10, *param,**kwparam):
+        super().__init__(*param,**kwparam)
+        with open(queryRepFile, 'rb') as f:
+            self.quer_Rep = pickle.load(f)
+        with open(corpusRepFile, 'rb') as f:
+            self.cortf_Rep=pickle.load(f)
+        self.cortf_Rep=self.cortf_Rep.type(torch.float32).cpu().numpy()
+        numDocs=len(self.document_dataset)
+        self.psuedo_topk=psuedo_topk
+        self.numDocs=numDocs
+        self.topic_Rep=np.zeros_like(self.cortf_Rep).astype(np.float32)
+    def __getitem__(self, idx):
+        query = self.query_list[idx]
+        ind=list(self.quer_Rep[query].keys())
+        values=list(self.quer_Rep[query].keys())
+        # queryRep1=self.quer_Rep[ind]
+        self.topic_Rep*=0.0
+        self.topic_Rep[ind]=values
+        FinalTopic_Rep=-self.cortf_Rep/(self.numDocs-self.psuedo_topk)+self.topic_Rep/self.psuedo_topk
+        orig_out=super().__getitem__(idx)     
+        return *orig_out,FinalTopic_Rep

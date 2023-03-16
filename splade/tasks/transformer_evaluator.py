@@ -194,6 +194,224 @@ class SparseRetrieval(Evaluator):
             return out
 
 
+class SparseRetrievalDiverse(SparseRetrieval):
+    """retrieval from SparseIndexing
+    """
+
+    @staticmethod
+    @numba.njit(nogil=True, parallel=True, cache=True)
+    def numba_score_float(inverted_index_ids: numba.typed.Dict,
+                          inverted_index_floats: numba.typed.Dict,
+                          indexes_to_retrieve: np.ndarray,
+                          query_values: np.ndarray,
+                          threshold: float,
+                          size_collection: int,
+                          group:list):
+        numGroup=len(set(group))
+        scores = np.zeros((size_collection,numGroup), dtype=np.float32)  # initialize array with size = size of collection
+        n = len(indexes_to_retrieve)
+        for _idx in range(n):
+            gropuId=group[_idx]
+            local_idx = indexes_to_retrieve[_idx]  # which posting list to search
+            query_float = query_values[_idx]  # what is the value of the query for this posting list
+            retrieved_indexes = inverted_index_ids[local_idx]  # get indexes from posting list
+            retrieved_floats = inverted_index_floats[local_idx]  # get values from posting list
+            for j in numba.prange(len(retrieved_indexes)):
+                scores[retrieved_indexes[j],gropuId] += query_float * retrieved_floats[j]
+        scores=np.sum(np.log(scores*10),axis=-1)
+        filtered_indexes = np.argwhere(scores > threshold)[:, 0]  # ideally we should have a threshold to filter
+        # unused documents => this should be tuned, currently it is set to 0
+        return filtered_indexes, -scores[filtered_indexes]
+    def numba_score_float1(self,inverted_index_ids: numba.typed.Dict,
+                          inverted_index_floats: numba.typed.Dict,
+                          indexes_to_retrieve: np.ndarray,
+                          query_values: np.ndarray,
+                          threshold: float,
+                          size_collection: int,
+                          group:list):
+        numGroup=max(group)+1
+        scores = np.zeros((size_collection,numGroup), dtype=np.float32)  # initialize array with size = size of collection
+        n = len(indexes_to_retrieve)
+        for _idx in range(n):
+            gropuId=group[_idx]
+            local_idx = indexes_to_retrieve[_idx]  # which posting list to search
+            query_float = query_values[_idx]  # what is the value of the query for this posting list
+            retrieved_indexes = inverted_index_ids[local_idx]  # get indexes from posting list
+            retrieved_floats = inverted_index_floats[local_idx]  # get values from posting list
+            for j in numba.prange(len(retrieved_indexes)):
+                scores[retrieved_indexes[j],gropuId] += query_float * retrieved_floats[j]
+        scores=np.sum(np.log(scores*10),axis=-1)
+        filtered_indexes = np.argwhere(scores > threshold)[:, 0]  # ideally we should have a threshold to filter
+        # unused documents => this should be tuned, currently it is set to 0
+        return filtered_indexes, -scores[filtered_indexes]
+    def __init__(self,*param,**kwparam):
+        super().__init__(*param,**kwparam)
+
+    def retrieve(self, q_loader, top_k, name=None, return_d=False, id_dict=False, threshold=0):
+        makedir(self.out_dir)
+        if self.compute_stats:
+            makedir(os.path.join(self.out_dir, "stats"))
+        res = defaultdict(dict)
+        if self.compute_stats:
+            stats = defaultdict(float)
+        with torch.no_grad():
+            for t, batch in enumerate(tqdm(q_loader)):
+                q_id = to_list(batch["id"])[0]
+                if id_dict:
+                    q_id = id_dict[q_id]
+                inputs = {k: v for k, v in batch.items() if k not in {"id"}}
+                for k, v in inputs.items():
+                    inputs[k] = v.to(self.device)
+                output=self.model(q_kwargs=inputs)
+                query = output["q_rep"]  # we assume ONE query per batch here
+                if self.compute_stats:
+                    stats["L0_q"] += self.l0(query).item()
+                # TODO: batched version for retrieval
+                row, col = torch.nonzero(query, as_tuple=True)
+                values = query[to_list(row), to_list(col)]
+                argmax= output["argmax"]
+                group=argmax[to_list(row), to_list(col)].cpu().numpy()
+                filtered_indexes, scores = self.numba_score_float(self.numba_index_doc_ids,
+                                                                  self.numba_index_doc_values,
+                                                                  col.cpu().numpy(),
+                                                                  values.cpu().numpy().astype(np.float32),
+                                                                  threshold=threshold,
+                                                                  size_collection=self.sparse_index.nb_docs(),
+                                                                  group=group)
+                # threshold set to 0 by default, could be better
+                filtered_indexes, scores = self.select_topk(filtered_indexes, scores, k=top_k)
+                for id_, sc in zip(filtered_indexes, scores):
+                    res[str(q_id)][str(self.doc_ids[id_])] = float(sc)
+        if self.compute_stats:
+            stats = {key: value / len(q_loader) for key, value in stats.items()}
+        if self.compute_stats:
+            with open(os.path.join(self.out_dir, "stats",
+                                   "q_stats{}.json".format("_iter_{}".format(name) if name is not None else "")),
+                      "w") as handler:
+                json.dump(stats, handler)
+            if self.doc_stats is not None:
+                with open(os.path.join(self.out_dir, "stats",
+                                       "d_stats{}.json".format("_iter_{}".format(name) if name is not None else "")),
+                          "w") as handler:
+                    json.dump(self.doc_stats, handler)
+        with open(os.path.join(self.out_dir, "run{}.json".format("_iter_{}".format(name) if name is not None else "")),
+                  "w") as handler:
+            json.dump(res, handler)
+        if return_d:
+            out = {"retrieval": res}
+            if self.compute_stats:
+                out["stats"] = stats if self.doc_stats is None else {**stats, **self.doc_stats}
+            return out
+class DeubgRetrieval(SparseRetrieval):
+    """retrieval from SparseIndexing
+    """
+
+    # @staticmethod
+    # @numba.njit(nogil=True, parallel=True, cache=True)
+    # def numba_score_float(inverted_index_ids: numba.typed.Dict,
+    #                       inverted_index_floats: numba.typed.Dict,
+    #                       indexes_to_retrieve: np.ndarray,
+    #                       query_values: np.ndarray,
+    #                       threshold: float,
+    #                       size_collection: int,
+    #                       group:list):
+    #     numGroup=len(set(group))
+    #     scores = np.zeros((size_collection,numGroup), dtype=np.float32)  # initialize array with size = size of collection
+    #     n = len(indexes_to_retrieve)
+    #     for _idx in range(n):
+    #         gropuId=group[_idx]
+    #         local_idx = indexes_to_retrieve[_idx]  # which posting list to search
+    #         query_float = query_values[_idx]  # what is the value of the query for this posting list
+    #         retrieved_indexes = inverted_index_ids[local_idx]  # get indexes from posting list
+    #         retrieved_floats = inverted_index_floats[local_idx]  # get values from posting list
+    #         for j in numba.prange(len(retrieved_indexes)):
+    #             scores[retrieved_indexes[j],gropuId] += query_float * retrieved_floats[j]
+    #     scores=np.sum(np.log(scores*10),axis=-1)
+    #     filtered_indexes = np.argwhere(scores > threshold)[:, 0]  # ideally we should have a threshold to filter
+    #     # unused documents => this should be tuned, currently it is set to 0
+    #     return filtered_indexes, -scores[filtered_indexes]
+    def numba_score_float1(self,inverted_index_ids: numba.typed.Dict,
+                          inverted_index_floats: numba.typed.Dict,
+                          indexes_to_retrieve: np.ndarray,
+                          query_values: np.ndarray,
+                          threshold: float,
+                          size_collection: int,
+                          group:list):
+        numGroup=max(group)+1
+        scores = np.zeros((size_collection,numGroup), dtype=np.float32)  # initialize array with size = size of collection
+        n = len(indexes_to_retrieve)
+        for _idx in range(n):
+            gropuId=group[_idx]
+            local_idx = indexes_to_retrieve[_idx]  # which posting list to search
+            query_float = query_values[_idx]  # what is the value of the query for this posting list
+            retrieved_indexes = inverted_index_ids[local_idx]  # get indexes from posting list
+            retrieved_floats = inverted_index_floats[local_idx]  # get values from posting list
+            for j in numba.prange(len(retrieved_indexes)):
+                scores[retrieved_indexes[j],gropuId] += query_float * retrieved_floats[j]
+        scores=np.sum(np.log(scores*10),axis=-1)
+        filtered_indexes = np.argwhere(scores > threshold)[:, 0]  # ideally we should have a threshold to filter
+        # unused documents => this should be tuned, currently it is set to 0
+        return filtered_indexes, -scores[filtered_indexes]
+    def __init__(self,*param,**kwparam):
+        super().__init__(*param,**kwparam)
+
+    def retrieve(self, q_loader, top_k, name=None, return_d=False, id_dict=False, threshold=0):
+        makedir(self.out_dir)
+        if self.compute_stats:
+            makedir(os.path.join(self.out_dir, "stats"))
+        res = defaultdict(dict)
+        if self.compute_stats:
+            stats = defaultdict(float)
+        with torch.no_grad():
+            for t, batch in enumerate(tqdm(q_loader)):
+                q_id = to_list(batch["id"])[0]
+                if id_dict:
+                    q_id = id_dict[q_id]
+                inputs = {k: v for k, v in batch.items() if k not in {"id"}}
+                for k, v in inputs.items():
+                    inputs[k] = v.to(self.device)
+                output=self.model(q_kwargs=inputs)
+                query = output["q_rep"]  # we assume ONE query per batch here
+                if self.compute_stats:
+                    stats["L0_q"] += self.l0(query).item()
+                # TODO: batched version for retrieval
+                row, col = torch.nonzero(query, as_tuple=True)
+                values = query[to_list(row), to_list(col)]
+                # argmax= output["argmax"]
+                # group=argmax[to_list(row), to_list(col)].cpu().numpy()
+                filtered_indexes, scores = self.numba_score_float(self.numba_index_doc_ids,
+                                                                  self.numba_index_doc_values,
+                                                                  col.cpu().numpy(),
+                                                                  values.cpu().numpy().astype(np.float32),
+                                                                  threshold=threshold,
+                                                                  size_collection=self.sparse_index.nb_docs())
+                # threshold set to 0 by default, could be better
+                filtered_indexes, scores = self.select_topk(filtered_indexes, scores, k=top_k)
+                for id_, sc in zip(filtered_indexes, scores):
+                    res[str(q_id)][str(self.doc_ids[id_])] = float(sc)
+        if self.compute_stats:
+            stats = {key: value / len(q_loader) for key, value in stats.items()}
+        if self.compute_stats:
+            with open(os.path.join(self.out_dir, "stats",
+                                   "q_stats{}.json".format("_iter_{}".format(name) if name is not None else "")),
+                      "w") as handler:
+                json.dump(stats, handler)
+            if self.doc_stats is not None:
+                with open(os.path.join(self.out_dir, "stats",
+                                       "d_stats{}.json".format("_iter_{}".format(name) if name is not None else "")),
+                          "w") as handler:
+                    json.dump(self.doc_stats, handler)
+        with open(os.path.join(self.out_dir, "run{}.json".format("_iter_{}".format(name) if name is not None else "")),
+                  "w") as handler:
+            json.dump(res, handler)
+        if return_d:
+            out = {"retrieval": res}
+            if self.compute_stats:
+                out["stats"] = stats if self.doc_stats is None else {**stats, **self.doc_stats}
+            return out
+
+
+
 class EncodeAnserini(Evaluator):
     """Create anserini docs
     """

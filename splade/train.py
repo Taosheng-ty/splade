@@ -6,9 +6,10 @@ from omegaconf import DictConfig, open_dict
 from torch.utils import data
 
 from conf.CONFIG_CHOICE import CONFIG_NAME, CONFIG_PATH
-from .datasets.dataloaders import CollectionDataLoader, SiamesePairsDataLoader, DistilSiamesePairsDataLoader
+from .datasets.dataloaders import CollectionDataLoader, SiamesePairsDataLoader, DistilSiamesePairsDataLoader,\
+    DistilSiamesePairsDataLoaderWithPsuedo
 from .datasets.datasets import PairsDatasetPreLoad, DistilPairsDatasetPreLoad, MsMarcoHardNegatives, \
-    CollectionDatasetPreLoad
+    CollectionDatasetPreLoad,MsMarcoHardNegativesWithPsuedo
 from .losses.regularization import init_regularizer, RegWeightScheduler
 from .models.models_utils import get_model
 from .optim.bert_optim import init_simple_bert_optim
@@ -111,6 +112,16 @@ def train(exp_dict: DictConfig):
             query_dir=exp_dict["data"]["TRAIN"]["Q_COLLECTION_PATH"],
             qrels_path=exp_dict["data"]["TRAIN"]["QREL_PATH"])
         train_mode = "triplets_with_distil"
+    elif exp_dict["data"].get("type", "") == "hard_negatives_psuedo":
+        data_train = MsMarcoHardNegativesWithPsuedo(
+            queryRepFile=exp_dict["data"]["TRAIN"]["queryRepFile"],
+            corpusRepFile=exp_dict["data"]["TRAIN"]["corpusRepFile"],
+            psuedo_topk=exp_dict["data"]["TRAIN"]["psuedo-topk"],
+            dataset_path=exp_dict["data"]["TRAIN"]["DATASET_PATH"],
+            document_dir=exp_dict["data"]["TRAIN"]["D_COLLECTION_PATH"],
+            query_dir=exp_dict["data"]["TRAIN"]["Q_COLLECTION_PATH"],
+            qrels_path=exp_dict["data"]["TRAIN"]["QREL_PATH"])
+        train_mode = "triplets_with_distil_psuedo"
     else:
         raise ValueError("provide valid data type for training")
 
@@ -148,6 +159,12 @@ def train(exp_dict: DictConfig):
                                                     num_workers=4,
                                                     tokenizer_type=config["tokenizer_type"],
                                                     max_length=config["max_length"], drop_last=drop_last)
+    elif train_mode == "triplets_with_distil_psuedo":
+        train_loader = DistilSiamesePairsDataLoaderWithPsuedo(dataset=data_train, batch_size=config["train_batch_size"],
+                                                    shuffle=True,
+                                                    num_workers=4,
+                                                    tokenizer_type=config["tokenizer_type"],
+                                                    max_length=config["max_length"], drop_last=drop_last)        
     else:
         raise NotImplementedError
 
