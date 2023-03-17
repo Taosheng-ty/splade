@@ -183,10 +183,10 @@ class MsMarcoHardNegativesWithPsuedo(MsMarcoHardNegatives):
     def __getitem__(self, idx):
         query = self.query_list[idx]
         ind=list(self.quer_Rep[query].keys())
-        values=list(self.quer_Rep[query].keys())
-        # queryRep1=self.quer_Rep[ind]
+        values=list(self.quer_Rep[query].values())
+        #queryRep1=self.quer_Rep[ind]
         self.topic_Rep*=0.0
         self.topic_Rep[ind]=values
-        FinalTopic_Rep=-self.cortf_Rep/(self.numDocs-self.psuedo_topk)+self.topic_Rep/self.psuedo_topk
-        orig_out=super().__getitem__(idx)     
+        FinalTopic_Rep=-(self.cortf_Rep-self.topic_Rep)/(self.numDocs-self.psuedo_topk)+self.topic_Rep/self.psuedo_topk
+        orig_out=super().__getitem__(idx)
         return *orig_out,FinalTopic_Rep

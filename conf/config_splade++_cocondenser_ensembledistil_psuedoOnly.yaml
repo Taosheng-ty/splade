@@ -1,0 +1,33 @@
+# FILES
+defaults: # (these specify which config FILES to use)
+  ############## TRAIN ###################################
+  - train/config: splade
+  - train/data: distil_from_ensemblePsuedo
+  - train/model: splade_cocondenser
+  ############## INDEX ###################################
+  - index: msmarco
+  ############## RETRIEVE ################################
+  - retrieve_evaluate: all
+  ############### FLOPS ##################################
+  - flops: msmarco
+
+# Direct PARAMETER setting
+config:
+  loss: DistilMarginMSE
+  regularizer:
+    FLOPS:
+      lambda_q: 0.5
+      lambda_d: 0.4
+      T: 50000
+      targeted_rep: rep
+      reg: FLOPS
+  checkpoint_dir: experiments/Only_psuedo/checkpoint
+  index_dir: experiments/Only_psuedo/index
+  out_dir: experiments/Only_psuedo/out
+  lambda_psuedo: 0.01
+  train_batch_size: 512 
+  eval_batch_size: 200
+  index_retrieve_batch_size: 150
+  max_length: 16
+  nb_iterations: 10000
+  only_psuedo: True

@@ -6,8 +6,9 @@ import gzip,pickle
 from collections import defaultdict
 import torch
 from collections import Counter
-scriptPath=os.path.dirname(os.path.abspath(__file__))
-os.chdir(scriptPath+"/..")
+import json
+# scriptPath=os.path.dirname(os.path.abspath(__file__))
+# os.chdir(scriptPath+"/..")
 model_type_or_dir="distilbert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 numToken=tokenizer.vocab_size
@@ -76,42 +77,62 @@ with gzip.open(dataset_path, "rb") as fIn:
     scores_dict = pickle.load(fIn)
 TopK=10
 log_idf={}
-q_ids=list(scores_dict.keys())
 
+
+qrels_path="data/msmarco/train_queries/qrels.json"
+with open(qrels_path) as reader:
+    qrels = json.load(reader)
+query_listTeacher = scores_dict.keys()
+query_list=[]
+for query in query_listTeacher:
+    if str(query) in qrels.keys():
+        query_list.append(query)
+
+q_ids=list(scores_dict.keys())
 for q_id in tqdm(q_ids,desc="processing data"):
     candidates=scores_dict[q_id]
-    p_ids = sorted(candidates,key=candidates.get,reverse=True)[:TopK]
+    labelled_positive = list(qrels[str(q_id)].keys()) if str(q_id) in qrels else []
+    p_idsTeacher = sorted(candidates,key=candidates.get,reverse=True)[:TopK]
+    p_ids=[int(i)for i in labelled_positive]
+    for pid in p_idsTeacher:
+        if pid not in p_ids:
+            p_ids.append(pid)
+        if len(p_ids)>TopK:
+            break
     log_idf[q_id]=defaultdict(int)
     for p_id in p_ids:
         tokenSent=tokenCop[p_id]
         FreqTokenSent=Counter(tokenSent)
+        
         for token in FreqTokenSent:
             freq=FreqTokenSent[token]
             if np.log(freq)<=0:
                 continue
             log_idf[q_id][token]+=np.log(freq)
-
-with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'wb') as f:
-    pickle.dump(log_idf, f)
-
-
-with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'rb') as f:
-    log_idf=pickle.load(f)
     
-indices=[[],[]]
-val=[]
-count_q=0
-convertedMap={}
-q_ids=list(log_idf.keys())
-for q_id in tqdm(q_ids,desc="processing data2"):
-    # localTf=log_idf[q_id]
-    for tokenid in log_idf[q_id]:
-        indices[0].append(count_q)
-        indices[1].append(tokenid)
-        val.append(log_idf[q_id][tokenid])
-    convertedMap[q_id]=count_q
-    count_q+=1
-s = torch.sparse_coo_tensor(indices, val, (len(q_ids), numToken))    
+        
 
-with open(f'output/log-doc-tf-tensor-dict-topk-{TopK}.pkl', 'wb') as f:
-    pickle.dump([convertedMap,s], f)
+# with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'wb') as f:
+#     pickle.dump(log_idf, f)
+
+
+# with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'rb') as f:
+#     log_idf=pickle.load(f)
+    
+# indices=[[],[]]
+# val=[]
+# count_q=0
+# convertedMap={}
+# q_ids=list(log_idf.keys())
+# for q_id in tqdm(q_ids,desc="processing data2"):
+#     # localTf=log_idf[q_id]
+#     for tokenid in log_idf[q_id]:
+#         indices[0].append(count_q)
+#         indices[1].append(tokenid)
+#         val.append(log_idf[q_id][tokenid])
+#     convertedMap[q_id]=count_q
+#     count_q+=1
+# s = torch.sparse_coo_tensor(indices, val, (len(q_ids), numToken))    
+
+# with open(f'output/log-doc-tf-tensor-dict-topk-{TopK}.pkl', 'wb') as f:
+#     pickle.dump([convertedMap,s], f)

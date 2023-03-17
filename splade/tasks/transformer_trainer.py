@@ -63,11 +63,16 @@ class TransformerTrainer(TrainerIter):
             with mpm.context():
                 for k, v in batch.items():
                     batch[k] = v.to(self.device)
-                out = self.forward(batch)  # out is a dict (we just feed it to the loss)
-                loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
+                if "only_psuedo" in self.config and self.config["only_psuedo"]:
+                    out={}
+                    out['pos_q_rep']=self.model.encode(batch["q"], is_q=True)
+                    loss=0
+                else:
+                    out = self.forward(batch)  # out is a dict (we just feed it to the loss)
+                    loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
                 
                 
-                moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
+
                 # training moving average for logging
                 if self.regularizer is not None:
                     if "train" in self.regularizer:
@@ -117,6 +122,7 @@ class TransformerTrainer(TrainerIter):
                 psuedo_loss=-((out['pos_q_rep']*(batch["topic_Rep"])).sum(dim=1)).mean()
                 loss+=psuedo_loss*self.config["lambda_psuedo"]
             loss = loss / self.config["gradient_accumulation_steps"]
+            moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
             # perform gradient update:
             mpm.backward(loss)
             if i % self.config["gradient_accumulation_steps"] == 0:
