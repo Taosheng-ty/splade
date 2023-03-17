@@ -64,8 +64,10 @@ class TransformerTrainer(TrainerIter):
                 for k, v in batch.items():
                     batch[k] = v.to(self.device)
                 if "only_psuedo" in self.config and self.config["only_psuedo"]:
+                    q_kwargs = parse(batch, "q")
+                    kwargs= {"q_kwargs": q_kwargs,"only_topic":True}
                     out={}
-                    out['pos_q_rep']=self.model.encode(batch["q"], is_q=True)
+                    out['pos_q_rep']=self.model(**kwargs)["q_rep"]
                     loss=0
                 else:
                     out = self.forward(batch)  # out is a dict (we just feed it to the loss)
@@ -111,9 +113,10 @@ class TransformerTrainer(TrainerIter):
                             monitor_losses["{}_q".format(reg)] = self.regularizer["eval"][reg]["loss"](
                                 out["pos_q_rep"]).mean()
                             # again, we can choose pos_q_rep or neg_q_rep indifferently
-                            monitor_losses["{}_d".format(reg)] = (self.regularizer["eval"][reg]["loss"](
-                                out["pos_d_rep"]).mean() + self.regularizer["eval"][reg]["loss"](
-                                out["neg_d_rep"]).mean()) / 2
+                            if lambda_d:
+                                monitor_losses["{}_d".format(reg)] = (self.regularizer["eval"][reg]["loss"](
+                                    out["pos_d_rep"]).mean() + self.regularizer["eval"][reg]["loss"](
+                                    out["neg_d_rep"]).mean()) / 2
             # when multiple GPUs, we need to aggregate the loss from the different GPUs (that's why the .mean())
             # see https://medium.com/huggingface/training-larger-batches-practical-tips-on-1-gpu-multi-gpu-distributed-setups-ec88c3e51255
             # for gradient accumulation  # TODO: check if everything works with gradient accumulation

@@ -17,7 +17,7 @@ config:
   regularizer:
     FLOPS:
       lambda_q: 0.5
-      lambda_d: 0.4
+      lambda_d: 0.0
       T: 50000
       targeted_rep: rep
       reg: FLOPS
@@ -29,5 +29,8 @@ config:
   eval_batch_size: 200
   index_retrieve_batch_size: 150
   max_length: 16
-  nb_iterations: 10000
+  nb_iterations: 5000
   only_psuedo: True
+  matching_type: DebugSplade
+  record_frequency: 1000
+  warmup_steps: 1000

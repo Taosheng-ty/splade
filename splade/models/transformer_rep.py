@@ -303,18 +303,21 @@ class DebugSplade(Splade):
         with torch.cuda.amp.autocast() if self.fp16 else NullContextManager():
             out = {}
             do_d, do_q = "d_kwargs" in kwargs, "q_kwargs" in kwargs
-            if do_d:
-                d_rep,argmax = self.encode(kwargs["d_kwargs"], is_q=False)
-                if self.cosine:  # normalize embeddings
-                    d_rep = normalize(d_rep)
-                out.update({"d_rep": d_rep})
-                out.update({"argmax": argmax})
             if do_q:
                 q_rep, argmax = self.encode(kwargs["q_kwargs"], is_q=True)
                 if self.cosine:  # normalize embeddings
                     q_rep = normalize(q_rep)
                 out.update({"q_rep": q_rep})
                 out.update({"argmax": argmax})
+            if "only_topic" in kwargs and kwargs["only_topic"]:
+                return out
+            if do_d:
+                d_rep,argmax = self.encode(kwargs["d_kwargs"], is_q=False)
+                if self.cosine:  # normalize embeddings
+                    d_rep = normalize(d_rep)
+                out.update({"d_rep": d_rep})
+                out.update({"argmax": argmax})
+
             if do_d and do_q:
                 if "nb_negatives" in kwargs:
                     # in the cas of negative scoring, where there are several negatives per query

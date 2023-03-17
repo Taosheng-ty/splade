@@ -16,7 +16,9 @@ config:  # to be provided for each run
   checkpoint_dir: experiments/debugg/checkpoint
   index_dir: experiments/debugg/index
   out_dir: experiments/debugg/out2
-  matching_type: Exclude_CLS_SEP_Splade
+  lambda_psuedo: 0.01
+  only_psuedo: True
+  # matching_type: Exclude_CLS_SEP_Splade
   # nb_iterations: 100
   # record_frequency: 10000
   # train_monitoring_freq: 1000
