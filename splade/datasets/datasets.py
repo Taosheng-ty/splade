@@ -129,7 +129,7 @@ class MsMarcoHardNegatives(Dataset):
     see: https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives
     """
 
-    def __init__(self, dataset_path, document_dir, query_dir, qrels_path):
+    def __init__(self, dataset_path, document_dir, query_dir, qrels_path, *param,**kwparam):
         self.document_dataset = CollectionDatasetPreLoad(document_dir, id_style="content_id")
         self.query_dataset = CollectionDatasetPreLoad(query_dir, id_style="content_id")
         with gzip.open(dataset_path, "rb") as fIn:
@@ -169,24 +169,38 @@ class MsMarcoHardNegativesWithPsuedo(MsMarcoHardNegatives):
     class used to work with the hard-negatives dataset from sentence transformers
     see: https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives
     """
-    def __init__(self,queryRepFile,corpusRepFile,psuedo_topk=10, *param,**kwparam):
+    def __init__(self,queryRepFile,corpusRepFile,psuedo_topk=10,topkTerms=50,toy=False, *param,**kwparam):
         super().__init__(*param,**kwparam)
         with open(queryRepFile, 'rb') as f:
             self.quer_Rep = pickle.load(f)
         with open(corpusRepFile, 'rb') as f:
             self.cortf_Rep=pickle.load(f)
-        self.cortf_Rep=self.cortf_Rep.type(torch.float32).cpu().numpy()
+        
+        
+        # self.cortf_Rep=self.cortf_Rep.type(torch.float32).cpu().numpy()
         numDocs=len(self.document_dataset)
         self.psuedo_topk=psuedo_topk
+        self.topkTerms=topkTerms
         self.numDocs=numDocs
-        self.topic_Rep=np.zeros_like(self.cortf_Rep).astype(np.float32)
+        self.ratio=np.sqrt(self.numDocs*self.psuedo_topk)  # avoid overflow 
+        self.cortf_Rep=(self.cortf_Rep/self.ratio).astype(np.float32)
+        if toy:
+            self.query_list=self.query_list[:128]
+    def __len__(self):
+        return len(self.query_list)
     def __getitem__(self, idx):
         query = self.query_list[idx]
         ind=list(self.quer_Rep[query].keys())
         values=list(self.quer_Rep[query].values())
         #queryRep1=self.quer_Rep[ind]
-        self.topic_Rep*=0.0
-        self.topic_Rep[ind]=values
-        FinalTopic_Rep=-(self.cortf_Rep-self.topic_Rep)/(self.numDocs-self.psuedo_topk)+self.topic_Rep/self.psuedo_topk
+        topic_Rep=np.zeros_like(self.cortf_Rep).astype(np.float32)
+        topic_Rep[:]=0
+        topic_Rep[ind]=values/self.ratio
+        # topic_Rep=(topic_Rep/self.ratio).astype(np.float32)
+        # FinalTopic_Rep=-(self.cortf_Rep-self.topic_Rep)/(self.numDocs-self.psuedo_topk)+self.topic_Rep/self.psuedo_topk
+        # MiddleTopic_Rep=self.topic_Rep**2/(self.cortf_Rep+1e-2)*self.ratio
+        # top_k = np.argpartition(MiddleTopic_Rep, -self.topkTerms)[-self.topkTerms:]
+        # self.FinalTopic_Rep[:]=-1
+        # self.FinalTopic_Rep[ind]=MiddleTopic_Rep[ind]
         orig_out=super().__getitem__(idx)
-        return *orig_out,FinalTopic_Rep
+        return *orig_out,topic_Rep,self.cortf_Rep

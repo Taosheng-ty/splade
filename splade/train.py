@@ -113,6 +113,7 @@ def train(exp_dict: DictConfig):
             qrels_path=exp_dict["data"]["TRAIN"]["QREL_PATH"])
         train_mode = "triplets_with_distil"
     elif exp_dict["data"].get("type", "") == "hard_negatives_psuedo":
+        toy=True if "toy" in exp_dict["data"]["TRAIN"] else False
         data_train = MsMarcoHardNegativesWithPsuedo(
             queryRepFile=exp_dict["data"]["TRAIN"]["queryRepFile"],
             corpusRepFile=exp_dict["data"]["TRAIN"]["corpusRepFile"],
@@ -120,7 +121,9 @@ def train(exp_dict: DictConfig):
             dataset_path=exp_dict["data"]["TRAIN"]["DATASET_PATH"],
             document_dir=exp_dict["data"]["TRAIN"]["D_COLLECTION_PATH"],
             query_dir=exp_dict["data"]["TRAIN"]["Q_COLLECTION_PATH"],
-            qrels_path=exp_dict["data"]["TRAIN"]["QREL_PATH"])
+            qrels_path=exp_dict["data"]["TRAIN"]["QREL_PATH"],
+            toy=toy
+            )
         train_mode = "triplets_with_distil_psuedo"
     else:
         raise ValueError("provide valid data type for training")

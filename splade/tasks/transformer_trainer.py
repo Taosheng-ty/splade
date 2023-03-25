@@ -33,7 +33,7 @@ class TransformerTrainer(TrainerIter):
         if self.test_loader is not None:
             pass
         assert "gradient_accumulation_steps" in self.config, "need to setup gradient accumulation steps in config"
-
+        self.only_topic=True if "lambda_hard" in self.config and self.config["lambda_hard"]==0 else False
     def forward(self, batch):
         """method that encapsulates the behaviour of a trainer 'forward'"""
         raise NotImplementedError
@@ -63,18 +63,11 @@ class TransformerTrainer(TrainerIter):
             with mpm.context():
                 for k, v in batch.items():
                     batch[k] = v.to(self.device)
-                if "only_psuedo" in self.config and self.config["only_psuedo"]:
-                    q_kwargs = parse(batch, "q")
-                    kwargs= {"q_kwargs": q_kwargs,"only_topic":True}
-                    out={}
-                    out['pos_q_rep']=self.model(**kwargs)["q_rep"]
-                    loss=0
-                else:
-                    out = self.forward(batch)  # out is a dict (we just feed it to the loss)
-                    loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
-                
-                
-
+                out = self.forward(batch)  # out is a dict (we just feed it to the loss)
+                Match_loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
+                # if "lambda_psuedo" in self.config and self.config["lambda_psuedo"]>0:
+                #     psuedo_loss=-((out['pos_q_rep']*(batch["topic_Rep"])).sum(dim=1)).mean()
+                #     loss+=psuedo_loss*self.config["lambda_psuedo"]                
                 # training moving average for logging
                 if self.regularizer is not None:
                     if "train" in self.regularizer:
@@ -106,7 +99,7 @@ class TransformerTrainer(TrainerIter):
                                                                        targeted_rep)]) * lambda_d).mean()) / 2
                             # NOTE: we take the rep of pos q for queries, but it would be equivalent to take the neg
                             # (because we consider triplets, so the rep of pos and neg are the same)
-                            loss += sum(regularization_losses.values())
+                            loss = Match_loss+sum(regularization_losses.values())
                     with torch.no_grad():
                         monitor_losses = {}
                         for reg in self.regularizer["eval"]:
@@ -120,12 +113,9 @@ class TransformerTrainer(TrainerIter):
             # when multiple GPUs, we need to aggregate the loss from the different GPUs (that's why the .mean())
             # see https://medium.com/huggingface/training-larger-batches-practical-tips-on-1-gpu-multi-gpu-distributed-setups-ec88c3e51255
             # for gradient accumulation  # TODO: check if everything works with gradient accumulation
-            # if self.config
-            if "lambda_psuedo" in self.config and self.config["lambda_psuedo"]>0:
-                psuedo_loss=-((out['pos_q_rep']*(batch["topic_Rep"])).sum(dim=1)).mean()
-                loss+=psuedo_loss*self.config["lambda_psuedo"]
             loss = loss / self.config["gradient_accumulation_steps"]
-            moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
+            print(f"the loss is {loss}")
+            moving_avg_ranking_loss = 0.99 *moving_avg_ranking_loss + 0.01 * loss.item()
             # perform gradient update:
             mpm.backward(loss)
             if i % self.config["gradient_accumulation_steps"] == 0:
@@ -137,6 +127,7 @@ class TransformerTrainer(TrainerIter):
                 self.training_res_handler.write("{},{}\n".format(i, loss.item()))
                 self.writer.add_scalar("batch_train_loss", loss.item(), i)
                 self.writer.add_scalar("moving_avg_ranking_loss", moving_avg_ranking_loss, i)
+                self.writer.add_scalar("Match_loss",Match_loss,i)
                 print("+batch_loss_iter{}: {}".format(i, round(loss.item(), 4)))
                 if self.regularizer is not None:
                     if "train" in self.regularizer:
@@ -202,6 +193,12 @@ class SiameseTransformerTrainer(TransformerTrainer):
         q_kwargs = parse(batch, "q")
         d_pos_kwargs = parse(batch, "pos")
         d_neg_kwargs = parse(batch, "neg")
+        out={**batch, **self.config}
+        if self.only_topic:
+            kwargs= {"q_kwargs": q_kwargs,"only_topic":True}
+            
+            out['pos_q_rep']=self.model(**kwargs)["q_rep"]
+            return  out     
         d_pos_args = {"q_kwargs": q_kwargs, "d_kwargs": d_pos_kwargs}
         d_neg_args = {"q_kwargs": q_kwargs, "d_kwargs": d_neg_kwargs}
         if "augment_pairs" in self.config:
@@ -213,7 +210,6 @@ class SiameseTransformerTrainer(TransformerTrainer):
         with torch.cuda.amp.autocast() if self.fp16 else amp.NullContextManager():
             out_pos = self.model(**d_pos_args)
             out_neg = self.model(**d_neg_args)
-        out = {}
         for k, v in out_pos.items():
             out["pos_{}".format(k)] = v
         for k, v in out_neg.items():

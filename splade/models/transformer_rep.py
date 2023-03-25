@@ -131,10 +131,10 @@ class Splade(SiameseBase):
     """SPLADE model
     """
 
-    def __init__(self, model_type_or_dir, model_type_or_dir_q=None, freeze_d_model=False, agg="max", fp16=True):
+    def __init__(self, model_type_or_dir, model_type_or_dir_q=None, freeze_d_model=False, agg="max", fp16=True,match="dot_product",):
         super().__init__(model_type_or_dir=model_type_or_dir,
                          output="MLM",
-                         match="dot_product",
+                         match=match,
                          model_type_or_dir_q=model_type_or_dir_q,
                          freeze_d_model=freeze_d_model,
                          fp16=fp16)
@@ -286,14 +286,18 @@ class DebugSplade(Splade):
         # self.output_dim = self.transformer_rep.transformer.config.vocab_size  # output dim = vocab size = 30522 for BERT
         # assert agg in ("sum", "max")
         # self.agg = agg
+        # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        # self.constant= torch.tensor([5]).to(device)
     def encode(self, tokens, is_q):
-        out = self.encode_(tokens, is_q)["logits"]  # shape (bs, pad_len, voc_size)
+        out =  self.encode_(tokens, is_q)["logits"]+20  # shape (bs, pad_len, voc_size)
         # out=out[:,1:-1,:]  ##cls and SEP usually cause much error
         if self.agg == "sum":
             return torch.sum(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
         else:
-            values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
-            argmax=torch.argmax(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+            # values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+            # argmax=torch.argmax(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+            values, _ = torch.max( torch.relu(out) * tokens["attention_mask"].unsqueeze(-1), dim=1)
+            argmax=torch.argmax(torch.relu(out) * tokens["attention_mask"].unsqueeze(-1), dim=1)
             return values,argmax
     def forward(self, **kwargs):
         """forward takes as inputs 1 or 2 dict

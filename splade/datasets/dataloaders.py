@@ -88,8 +88,9 @@ class      DistilSiamesePairsDataLoaderWithPsuedo(DataLoaderWrapper):
     def collate_fn(self, batch):
         """
         """
-        q, d_pos, d_neg, s_pos, s_neg ,topic_Rep= zip(*batch)
+        q, d_pos, d_neg, s_pos, s_neg ,topic_Rep,cortf_Rep= zip(*batch)
         topic_Rep=np.stack(topic_Rep)
+        cortf_Rep=np.stack(cortf_Rep)
         q = self.tokenizer(list(q),
                            add_special_tokens=True,
                            padding="longest",  # pad to max sequence length in batch
@@ -111,7 +112,7 @@ class      DistilSiamesePairsDataLoaderWithPsuedo(DataLoaderWrapper):
                                return_attention_mask=True)
 
         sample = {**rename_keys(q, "q"), **rename_keys(d_pos, "pos"), **rename_keys(d_neg, "neg"),
-                  "teacher_p_score": s_pos, "teacher_n_score": s_neg,"topic_Rep":topic_Rep}
+                  "teacher_p_score": s_pos, "teacher_n_score": s_neg,"topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep}
         output={}
         for k, v in sample.items():
             if torch.is_tensor(v):

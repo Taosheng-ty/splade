@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
 
-from ..losses.pairwise import DistilKLLoss, PairwiseNLL, DistilMarginMSE, InBatchPairwiseNLL
+from ..losses.pairwise import DistilKLLoss, PairwiseNLL, DistilMarginMSE, InBatchPairwiseNLL,HybridLoss
 from ..losses.pointwise import BCEWithLogitsLoss
 
 
@@ -136,6 +136,9 @@ def get_loss(config):
         loss = InBatchPairwiseNLL()
     elif config["loss"] == "BCE":
         loss = BCEWithLogitsLoss()
+    elif config["loss"] == "Hybrid":
+        loss = HybridLoss()
+        
     else:
         raise NotImplementedError("provide valid loss")
     return loss

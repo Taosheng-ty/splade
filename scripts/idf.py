@@ -7,8 +7,8 @@ from collections import defaultdict
 import torch
 from collections import Counter
 import json
-# scriptPath=os.path.dirname(os.path.abspath(__file__))
-# os.chdir(scriptPath+"/..")
+scriptPath=os.path.dirname(os.path.abspath(__file__))
+os.chdir(scriptPath+"/..")
 model_type_or_dir="distilbert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 numToken=tokenizer.vocab_size
@@ -38,21 +38,23 @@ else:
     with open('output/tokenCop.pkl', 'wb') as f:
         pickle.dump(tokenCop, f)
 
-# InverseVocab={key[1]:key[0] for ind,key in enumerate(tokenizer.vocab.items())}
-# numToken=len(tokenizer.vocab.keys())
+InverseVocab={key[1]:key[0] for ind,key in enumerate(tokenizer.vocab.items())}
+numToken=len(tokenizer.vocab.keys())
 
     
 # log_idf={ind:0 for ind in range(numToken)}
-# # log_idf=torch.zeros(numToken)
+# log_idf=torch.zeros(numToken)
 # log_idfToken={key:0 for key in tokenizer.vocab}
+
+# log_idf=np.zeros(numToken)
 # from collections import Counter
-# for tokenSent in tqdm(tokenCop[:5],desc="processing data corpus"):
+# for tokenSent in tqdm(tokenCop,desc="processing data corpus"):
 #     FreqTokenSent=Counter(tokenSent)
 #     for token in FreqTokenSent:
 #         freq=FreqTokenSent[token]
-#         log_idf[token]+=np.log(freq)
+#         log_idf[token]+=np.log(1+freq)
 #         log_idfToken[InverseVocab[token]]+=np.log(freq)
-# with open('output/corpus-tf-log-tensor-dict.pkl', 'wb') as f:
+# with open('output/corpus-tf-log-tensor-dictNP.pkl', 'wb') as f:
 #     pickle.dump(log_idf, f)
 # with open('output/log-corpus-tf-token.pkl', 'rb') as f:
 #     pickle.dump(log_idfToken, f)
@@ -106,14 +108,14 @@ for q_id in tqdm(q_ids,desc="processing data"):
         
         for token in FreqTokenSent:
             freq=FreqTokenSent[token]
-            if np.log(freq)<=0:
-                continue
-            log_idf[q_id][token]+=np.log(freq)
+            # if np.log(freq)<=0:
+            #     continue
+            log_idf[q_id][token]+=np.log(1+freq)
     
         
 
-# with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'wb') as f:
-#     pickle.dump(log_idf, f)
+with open(f'output/Val_log-doc-tf-topk-{TopK}.pkl', 'wb') as f:
+    pickle.dump(log_idf, f)
 
 
 # with open(f'output/log-doc-tf-topk-{TopK}.pkl', 'rb') as f:

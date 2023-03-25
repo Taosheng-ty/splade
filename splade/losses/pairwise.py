@@ -66,6 +66,34 @@ class DistilMarginMSE:
         return self.loss(margin.squeeze(), teacher_margin.squeeze())  # forces the margins to be similar
 
 
+class HybridLoss(DistilMarginMSE):
+    """MSE margin distillation loss from: Improving Efficient Neural Ranking Models with Cross-Architecture
+    Knowledge Distillation
+    link: https://arxiv.org/abs/2010.02666
+    """
+
+    def __init__(self,*param,**kwparam):
+        super().__init__(*param,**kwparam)
+    def __call__(self, out_d):
+        """out_d also contains scores from teacher
+        """
+        assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
+        loss=0
+        if out_d["lambda_hard"]>0:
+            Marginal_loss=super().__call__(out_d)
+            loss+=out_d["lambda_hard"]*Marginal_loss
+        if out_d["lambda_psuedo"]>0:
+            # Psuedo_loss=-(out_d['pos_q_rep']*(out_d["topic_Rep"])).sum(dim=1)
+            q=out_d['pos_q_rep']
+            topic=out_d["topic_Rep"]
+            corpus=out_d["cortf_Rep"]
+            Psuedo_loss=-(torch.sum(q * topic, dim=-1))/(torch.sum(q * corpus, dim=-1)+1e-3)
+            Psuedo_loss=Psuedo_loss.sum()
+            loss+=out_d["lambda_psuedo"]*Psuedo_loss
+        return loss  # forces the margins to be similar
+
+
+
 class DistilKLLoss:
     """Distillation loss from: Distilling Dense Representations for Ranking using Tightly-Coupled Teachers
     link: https://arxiv.org/abs/2010.11386

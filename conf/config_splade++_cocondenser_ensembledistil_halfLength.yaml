@@ -15,7 +15,7 @@ defaults: # (these specify which config FILES to use)
 config:
   loss: DistilMarginMSE
   regularizer:
-    FLOPS:
+    F1:
       lambda_q: 0.5
       lambda_d: 0.4
       T: 50000
