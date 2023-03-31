@@ -12,9 +12,7 @@ import psutil
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
 def train_index_retrieve(exp_dict: DictConfig):
-    # print('RAM Used (GB):', psutil.virtual_memory()[3]/1000000000,flush=True)
     hydra_chdir(exp_dict)
-
     train(exp_dict)
     index(exp_dict)
     retrieve_evaluate(exp_dict)
