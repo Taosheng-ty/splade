@@ -33,7 +33,7 @@ class TransformerTrainer(TrainerIter):
         if self.test_loader is not None:
             pass
         assert "gradient_accumulation_steps" in self.config, "need to setup gradient accumulation steps in config"
-        self.only_topic=True if "lambda_hard" in self.config and self.config["lambda_hard"]==0 else False
+        # self.only_topic=True if "lambda_hard" in self.config and self.config["lambda_hard"]==0 else False
     def forward(self, batch):
         """method that encapsulates the behaviour of a trainer 'forward'"""
         raise NotImplementedError
@@ -65,6 +65,7 @@ class TransformerTrainer(TrainerIter):
                     batch[k] = v.to(self.device)
                 out = self.forward(batch)  # out is a dict (we just feed it to the loss)
                 Match_loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
+                loss=Match_loss
                 # if "lambda_psuedo" in self.config and self.config["lambda_psuedo"]>0:
                 #     psuedo_loss=-((out['pos_q_rep']*(batch["topic_Rep"])).sum(dim=1)).mean()
                 #     loss+=psuedo_loss*self.config["lambda_psuedo"]                
@@ -99,7 +100,7 @@ class TransformerTrainer(TrainerIter):
                                                                        targeted_rep)]) * lambda_d).mean()) / 2
                             # NOTE: we take the rep of pos q for queries, but it would be equivalent to take the neg
                             # (because we consider triplets, so the rep of pos and neg are the same)
-                            loss = Match_loss+sum(regularization_losses.values())
+                            loss = loss+sum(regularization_losses.values())
                     with torch.no_grad():
                         monitor_losses = {}
                         for reg in self.regularizer["eval"]:
@@ -172,6 +173,7 @@ class TransformerTrainer(TrainerIter):
                                     break
                             else:
                                 self.saver(val_dec, self, i)
+                        # self.save_checkpoint(step=i, perf=val_dec, is_best=True) # save every model for debug purpose
                         # same for test (if test loader !):
                         if self.test_loader is not None:
                             # no use for now
@@ -194,11 +196,11 @@ class SiameseTransformerTrainer(TransformerTrainer):
         d_pos_kwargs = parse(batch, "pos")
         d_neg_kwargs = parse(batch, "neg")
         out={**batch, **self.config}
-        if self.only_topic:
-            kwargs= {"q_kwargs": q_kwargs,"only_topic":True}
+        # if self.only_topic:
+        #     kwargs= {"q_kwargs": q_kwargs,"only_topic":True}
             
-            out['pos_q_rep']=self.model(**kwargs)["q_rep"]
-            return  out     
+        #     out['pos_q_rep']=self.model(**kwargs)["q_rep"]
+        #     return  out     
         d_pos_args = {"q_kwargs": q_kwargs, "d_kwargs": d_pos_kwargs}
         d_neg_args = {"q_kwargs": q_kwargs, "d_kwargs": d_neg_kwargs}
         if "augment_pairs" in self.config:

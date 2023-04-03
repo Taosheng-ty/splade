@@ -146,7 +146,7 @@ class MsMarcoHardNegatives(Dataset):
     def __len__(self):
         return len(self.query_list)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx,returnId=True):
         query = self.query_list[idx]
         q = self.query_dataset[str(query)][1]
         candidates_dict = self.scores_dict[query]
@@ -160,6 +160,8 @@ class MsMarcoHardNegatives(Dataset):
         s_neg = candidates_dict[negative]
         d_pos = self.document_dataset[positive][1]
         d_neg = self.document_dataset[str(negative)][1]
+        if returnId==True:
+            return q.strip(), d_pos.strip(), d_neg.strip(), float(s_pos), float(s_neg), positive
         return q.strip(), d_pos.strip(), d_neg.strip(), float(s_pos), float(s_neg)
 
 
@@ -169,38 +171,46 @@ class MsMarcoHardNegativesWithPsuedo(MsMarcoHardNegatives):
     class used to work with the hard-negatives dataset from sentence transformers
     see: https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives
     """
-    def __init__(self,queryRepFile,corpusRepFile,psuedo_topk=10,topkTerms=50,toy=False, *param,**kwparam):
+    def __init__(self,corpusStatsPath,queryStatsPath,psuedo_topk=10, *param,**kwparam):
         super().__init__(*param,**kwparam)
-        with open(queryRepFile, 'rb') as f:
-            self.quer_Rep = pickle.load(f)
-        with open(corpusRepFile, 'rb') as f:
-            self.cortf_Rep=pickle.load(f)
-        
-        
+        with open(corpusStatsPath, 'rb') as f:
+            CorpusStats=pickle.load(f)
+        self.corpus_tf,self.doc_tf,self.psuedo_doc_tf=CorpusStats["corpus"],CorpusStats["pos_tf"],CorpusStats["psuedo_tf"]   
+        with open (queryStatsPath, 'rb') as f:
+            QueryStats=pickle.load(f)
+        self.Qcorpus_tf,self.Qquery_tf=QueryStats["corpus"],QueryStats["pos_tf"]
         # self.cortf_Rep=self.cortf_Rep.type(torch.float32).cpu().numpy()
         numDocs=len(self.document_dataset)
         self.psuedo_topk=psuedo_topk
-        self.topkTerms=topkTerms
         self.numDocs=numDocs
-        self.ratio=np.sqrt(self.numDocs*self.psuedo_topk)  # avoid overflow 
-        self.cortf_Rep=(self.cortf_Rep/self.ratio).astype(np.float32)
-        if toy:
-            self.query_list=self.query_list[:128]
+        self.numVocab=len(self.corpus_tf)
+        # self.ratio=np.sqrt(self.numDocs*self.psuedo_topk)  # avoid overflow 
+        self.Qcorpus_tf=self.Qcorpus_tf.astype(np.float32)
+        self.corpus_tf=self.corpus_tf.astype(np.float32)
     def __len__(self):
         return len(self.query_list)
+    def convert_sparse2Dense(self,sparseRep):
+        ind=list(sparseRep.keys())
+        values=list(sparseRep.values())   
+        DenseRep=np.zeros(self.numVocab).astype(np.float32)
+        DenseRep[:]=0
+        DenseRep[ind]=values   
+        return DenseRep
+        
     def __getitem__(self, idx):
+        q,d_pos,d_neg,s_pos,s_neg,positive=super().__getitem__(idx,returnId=True)
+        
+        querySparse=self.Qquery_tf[positive]
+        topicRep=self.convert_sparse2Dense(querySparse)
+        
         query = self.query_list[idx]
-        ind=list(self.quer_Rep[query].keys())
-        values=list(self.quer_Rep[query].values())
-        #queryRep1=self.quer_Rep[ind]
-        topic_Rep=np.zeros_like(self.cortf_Rep).astype(np.float32)
-        topic_Rep[:]=0
-        topic_Rep[ind]=values/self.ratio
-        # topic_Rep=(topic_Rep/self.ratio).astype(np.float32)
-        # FinalTopic_Rep=-(self.cortf_Rep-self.topic_Rep)/(self.numDocs-self.psuedo_topk)+self.topic_Rep/self.psuedo_topk
-        # MiddleTopic_Rep=self.topic_Rep**2/(self.cortf_Rep+1e-2)*self.ratio
-        # top_k = np.argpartition(MiddleTopic_Rep, -self.topkTerms)[-self.topkTerms:]
-        # self.FinalTopic_Rep[:]=-1
-        # self.FinalTopic_Rep[ind]=MiddleTopic_Rep[ind]
-        orig_out=super().__getitem__(idx)
-        return *orig_out,topic_Rep,self.cortf_Rep
+        docSparse=self.doc_tf[query]
+        docRep=self.convert_sparse2Dense(docSparse)
+        
+        psuedoDocSparse=self.psuedo_doc_tf[query]
+        psuedoDocRep=self.convert_sparse2Dense(psuedoDocSparse)
+        
+        
+        s_pos,s_neg=s_pos,s_neg
+        
+        return q,d_pos,d_neg,s_pos,s_neg,self.Qcorpus_tf,topicRep,self.corpus_tf,docRep,psuedoDocRep

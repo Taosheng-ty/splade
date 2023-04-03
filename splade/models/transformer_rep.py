@@ -278,16 +278,6 @@ class DebugSplade(Splade):
     """
     def __init__(self,*param,**kwparam):
         super().__init__(*param,**kwparam)
-        # with open(idfpkl, 'rb') as f:
-        #     idf = pickle.load(f)
-        # idfTensor=torch.tensor(list(idf.values()),dtype=torch.float32)
-        # idfTensor=torch.clip(idfTensor,10,10**6)
-        # self.idf=torch.nn.parameter.Parameter(idfTensor,requires_grad=False)
-        # self.output_dim = self.transformer_rep.transformer.config.vocab_size  # output dim = vocab size = 30522 for BERT
-        # assert agg in ("sum", "max")
-        # self.agg = agg
-        # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        # self.constant= torch.tensor([5]).to(device)
     def encode(self, tokens, is_q):
         out =  self.encode_(tokens, is_q)["logits"]+20  # shape (bs, pad_len, voc_size)
         # out=out[:,1:-1,:]  ##cls and SEP usually cause much error

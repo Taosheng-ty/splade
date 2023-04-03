@@ -6,7 +6,7 @@ and negatives
 
 
 class PairwiseNLL:
-    def __init__(self):
+    def __init__(self,*param,**kwparam):
         self.logsoftmax = torch.nn.LogSoftmax(dim=1)
 
     def __call__(self, out_d):
@@ -19,7 +19,7 @@ class InBatchPairwiseNLL:
     """in batch negatives version
     """
 
-    def __init__(self):
+    def __init__(self,*param,**kwparam):
         self.logsoftmax = torch.nn.LogSoftmax(dim=1)
 
     def __call__(self, out_d):
@@ -38,7 +38,7 @@ class PairwiseBPR:
     """BPR loss from: http://webia.lip6.fr/~gallinar/gallinari/uploads/Teaching/WSDM2014-rendle.pdf
     """
 
-    def __init__(self):
+    def __init__(self,*param,**kwparam):
         self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.loss = torch.nn.BCEWithLogitsLoss(reduction="mean")
 
@@ -53,7 +53,7 @@ class DistilMarginMSE:
     link: https://arxiv.org/abs/2010.02666
     """
 
-    def __init__(self):
+    def __init__(self,*param,**kwparam):
         self.loss = torch.nn.MSELoss()
 
     def __call__(self, out_d):
@@ -72,24 +72,43 @@ class HybridLoss(DistilMarginMSE):
     link: https://arxiv.org/abs/2010.02666
     """
 
-    def __init__(self,*param,**kwparam):
+    def __init__(self,numDocs,numQueries,psuedo_topk,*param,**kwparam):
+        self.numDocs=numDocs
+        self.numQueries=numQueries
+        self.psuedo_topk=psuedo_topk
         super().__init__(*param,**kwparam)
     def __call__(self, out_d):
         """out_d also contains scores from teacher
         """
-        assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
+        # assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
         loss=0
         if out_d["lambda_hard"]>0:
             Marginal_loss=super().__call__(out_d)
             loss+=out_d["lambda_hard"]*Marginal_loss
-        if out_d["lambda_psuedo"]>0:
+        if "lambda_psuedo" in out_d and  out_d["lambda_psuedo"]>0:
             # Psuedo_loss=-(out_d['pos_q_rep']*(out_d["topic_Rep"])).sum(dim=1)
+            q=out_d['pos_q_rep']
+            topic=out_d["psuedo_topic_Rep"]
+            corpus=out_d["cortf_Rep"]
+            Psuedo_loss=-(torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs)
+            Psuedo_loss=Psuedo_loss.sum()
+            loss+=out_d["lambda_psuedo"]*Psuedo_loss
+        if "lambda_Query" in out_d and out_d["lambda_Query"]>0:
+            d=out_d['pos_d_rep']
+            topic=out_d["Qtopic_Rep"]
+            corpus=out_d["Qcortf_Rep"]
+            QPsuedo_loss=-(torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries)
+            QPsuedo_loss=QPsuedo_loss.sum()
+            loss+=out_d["lambda_Query"]*QPsuedo_loss
+            
+        if "lambda_Doc" in out_d and out_d["lambda_Doc"]>0:
+            #  "topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep,"psuedo_topic_Rep":psuedo_topic_Rep
             q=out_d['pos_q_rep']
             topic=out_d["topic_Rep"]
             corpus=out_d["cortf_Rep"]
-            Psuedo_loss=-(torch.sum(q * topic, dim=-1))/(torch.sum(q * corpus, dim=-1)+1e-3)
-            Psuedo_loss=Psuedo_loss.sum()
-            loss+=out_d["lambda_psuedo"]*Psuedo_loss
+            QPsuedo_loss=-(torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs)
+            QPsuedo_loss=QPsuedo_loss.sum()
+            loss+=out_d["lambda_Doc"]*QPsuedo_loss
         return loss  # forces the margins to be similar
 
 
@@ -99,7 +118,7 @@ class DistilKLLoss:
     link: https://arxiv.org/abs/2010.11386
     """
 
-    def __init__(self):
+    def __init__(self,*param,**kwparam):
         self.loss = torch.nn.KLDivLoss(reduction="none")
 
     def __call__(self, out_d):

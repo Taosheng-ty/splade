@@ -137,7 +137,7 @@ def get_loss(config):
     elif config["loss"] == "BCE":
         loss = BCEWithLogitsLoss()
     elif config["loss"] == "Hybrid":
-        loss = HybridLoss()
+        loss = HybridLoss(**config)
         
     else:
         raise NotImplementedError("provide valid loss")

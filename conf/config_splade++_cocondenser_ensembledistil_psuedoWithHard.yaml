@@ -2,8 +2,8 @@
 defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
   - train/config: splade
-  - train/data: distil_from_ensemblePsuedoToy
-  - train/model: splade_cocondenser
+  - train/data: distil_from_ensemblePsuedoToy20
+  - train/model: splade
   ############## INDEX ###################################
   - index: msmarco
   ############## RETRIEVE ################################
@@ -15,29 +15,33 @@ defaults: # (these specify which config FILES to use)
 config:
   loss: Hybrid
   regularizer:
-    L1:
+    FLOPS:
       lambda_q: 0.01
-      lambda_d: 0.1
-      T: 200
+      lambda_d: 0.001
+      T: 500
       targeted_rep: rep
-      reg: L1
-  checkpoint_dir: experiments/PsuedoHardToy/checkpoint
-  index_dir: experiments/PsuedoHardToy/index
-  out_dir: experiments/PsuedoHardToy/out
-  train_batch_size: 32 
-  eval_batch_size: 150
-  index_retrieve_batch_size: 300
-  max_length: 100
-  nb_iterations: 1000
-  train_monitoring_freq: 50
+      reg: FLOPS
+  checkpoint_dir: experiments/debug/checkpoint
+  index_dir: experiments/debug/index
+  out_dir: experiments/debug/out
+  train_batch_size: 8 
+  eval_batch_size: 84
+  index_retrieve_batch_size: 20
+  max_length: 96
+  nb_iterations: 60
+  train_monitoring_freq: 20
   matching_type: splade
   record_frequency: 50
   warmup_steps: 100
-  lambda_hard: 1
-  lambda_psuedo: 0
+  lambda_hard: 0
+  lambda_Doc: 0
+  lambda_Query: 0
+  lambda_psuedo: 100000
+  
+
   # fp16: false
-data:
-  TRAIN:
-    toy: True
+# data:
+#   TRAIN:
+#     toy: True
 # init_dict:
 #   match: cosine_sim

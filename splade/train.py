@@ -63,7 +63,6 @@ def train(exp_dict: DictConfig):
         model = torch.nn.DataParallel(model)
     model.to(device)
 
-    loss = get_loss(config)
 
     # initialize regularizer dict
     if "regularizer" in config and regularizer is None:  # else regularizer is loaded
@@ -115,8 +114,8 @@ def train(exp_dict: DictConfig):
     elif exp_dict["data"].get("type", "") == "hard_negatives_psuedo":
         toy=True if "toy" in exp_dict["data"]["TRAIN"] else False
         data_train = MsMarcoHardNegativesWithPsuedo(
-            queryRepFile=exp_dict["data"]["TRAIN"]["queryRepFile"],
-            corpusRepFile=exp_dict["data"]["TRAIN"]["corpusRepFile"],
+            corpusStatsPath=exp_dict["data"]["TRAIN"]["CorpusStatsFile"],
+            queryStatsPath=exp_dict["data"]["TRAIN"]["QueryStatsFile"],
             psuedo_topk=exp_dict["data"]["TRAIN"]["psuedo-topk"],
             dataset_path=exp_dict["data"]["TRAIN"]["DATASET_PATH"],
             document_dir=exp_dict["data"]["TRAIN"]["D_COLLECTION_PATH"],
@@ -127,7 +126,14 @@ def train(exp_dict: DictConfig):
         train_mode = "triplets_with_distil_psuedo"
     else:
         raise ValueError("provide valid data type for training")
-
+    # config["hybridLoss"]=
+    LossConfig={}
+    LossConfig["loss"]=config["loss"]
+    LossConfig["numDocs"]=len(data_train.document_dataset)
+    LossConfig["numQueries"]=len(data_train.query_dataset)
+    if "psuedo-topk" in exp_dict["data"]["TRAIN"]:
+        LossConfig["psuedo_topk"]=exp_dict["data"]["TRAIN"]["psuedo-topk"]
+    loss = get_loss(LossConfig)
     val_loss_loader = None  # default
     if "VALIDATION_SIZE_FOR_LOSS" in exp_dict["data"]:
         print("initialize loader for validation loss")
