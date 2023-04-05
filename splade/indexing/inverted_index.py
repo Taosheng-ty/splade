@@ -29,7 +29,7 @@ class IndexDictOfArray:
                     dim = self.file["dim"][()]
                 self.index_doc_id = dict()
                 self.index_doc_value = dict()
-                for key in tqdm(range(dim)):
+                for key in tqdm(range(dim),desc="loading index"):
                     try:
                         self.index_doc_id[key] = np.array(self.file["index_doc_id_{}".format(key)],
                                                           dtype=np.int32)

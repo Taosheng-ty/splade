@@ -17,7 +17,7 @@ def List2Tsv(inp: list,outputDir='output.tsv'):
 scriptPath=os.path.dirname(os.path.abspath(__file__))
 os.chdir(scriptPath+"/..")
 sys.path.insert(0,scriptPath+"/..")
-from splade.datasets.datasets import MsMarcoHardNegativesWithPsuedo
+from splade.datasets.datasets import MsMarcoHardNegativesWithPsuedo,MsMarcoHardNegatives
     
 # inputDict={
 #     "dataset_path": 'data/msmarco/hard_negatives_scores/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz',
@@ -33,15 +33,15 @@ inputDict={
     "document_dir": 'data/toy_data1k/full_collection',
     "query_dir":'data/toy_data1k/train_queries/queries',
     "qrels_path":'data/msmarco/train_queries/qrels.json',
-    "queryRepFile":'data/toy_data1k/psuedo/log-doc-tf-topk-10.pkl',
-    "corpusRepFile":'output/corpus-tf-log-tensor-dictNP.pkl',
-    "psuedo_topk":10,
+    # "queryRepFile":'data/toy_data1k/psuedo/log-doc-tf-topk-10.pkl',
+    # "corpusRepFile":'output/corpus-tf-log-tensor-dictNP.pkl',
+    # "psuedo_topk":10,
     # "toy":True
     }
-dataset=MsMarcoHardNegativesWithPsuedo(**inputDict)
+dataset=MsMarcoHardNegatives(**inputDict)
 
-qselect=dataset.query_list[0:20]
-NewName="toy_data20"
+qselect=dataset.query_list[0:1000]
+NewName="toy_data1k"
 Toyquerys=[[str(qid),dataset.query_dataset.data_dict[str(qid)]] for qid in qselect]
 List2Tsv(Toyquerys,outputDir=f"data/{NewName}/train_queries/queries/raw.tsv")
 
@@ -53,14 +53,24 @@ ToyDocs=[[did,dataset.document_dataset.data_dict[str(did)]]for did in ToyDocs]
 
 List2Tsv(ToyDocs,outputDir=f"data/{NewName}/full_collection/raw.tsv")
 
-subscoreDict={qid:dataset.scores_dict[str(qid)] for qid,query in Toyquerys}
-import pickle
-with open(f"data/{NewName}/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl", 'wb') as fIn:
-    pickle.dump(subscoreDict, fIn)
-os.system(f"gzip data/{NewName}/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl")
-subsquer_Rep={qid:dataset.quer_Rep[str(qid)] for qid,query in Toyquerys}
-import pickle
-os.makedirs(f"data/{NewName}/psuedo",exist_ok=True)
-with open(f"data/{NewName}/psuedo/log-doc-tf-topk-10.pkl", 'wb') as fIn:
-    pickle.dump(subsquer_Rep, fIn)
+qrelsSamples=[]
+for qid,query in Toyquerys:
+    for pid in dataset.qrels[qid]:
+        if dataset.qrels[qid][pid]>=0:
+            qrelsSamples.append([qid,0,pid,dataset.qrels[qid][pid]])
+# ToyDocs=[[did,dataset.document_dataset.data_dict[str(did)]]for did in ToyDocs]
+
+List2Tsv(qrelsSamples,outputDir=f"data/{NewName}/qrels.train.tsv")
+
+
+# subscoreDict={qid:dataset.scores_dict[str(qid)] for qid,query in Toyquerys}
+# import pickle
+# with open(f"data/{NewName}/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl", 'wb') as fIn:
+#     pickle.dump(subscoreDict, fIn)
+# os.system(f"gzip data/{NewName}/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl")
+# subsquer_Rep={qid:dataset.quer_Rep[str(qid)] for qid,query in Toyquerys}
+# import pickle
+# os.makedirs(f"data/{NewName}/psuedo",exist_ok=True)
+# with open(f"data/{NewName}/psuedo/log-doc-tf-topk-10.pkl", 'wb') as fIn:
+#     pickle.dump(subsquer_Rep, fIn)
 

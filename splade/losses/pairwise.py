@@ -82,7 +82,7 @@ class HybridLoss(DistilMarginMSE):
         """
         # assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
         loss=0
-        if out_d["lambda_hard"]>0:
+        if "lambda_hard" in out_d  and out_d["lambda_hard"]>0:
             Marginal_loss=super().__call__(out_d)
             loss+=out_d["lambda_hard"]*Marginal_loss
         if "lambda_psuedo" in out_d and  out_d["lambda_psuedo"]>0:

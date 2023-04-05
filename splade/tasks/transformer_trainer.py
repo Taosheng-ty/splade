@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from omegaconf import open_dict
 from tqdm.auto import tqdm
-import psutil
+
 from ..tasks import amp
 from ..tasks.base.trainer import TrainerIter
 from ..utils.metrics import init_eval
@@ -51,7 +51,6 @@ class TransformerTrainer(TrainerIter):
 
         for i in tqdm(range(self.start_iteration, self.nb_iterations + 1)):
             self.model.train()  # train model
-            # print('RAM Used (GB):', psutil.virtual_memory()[3]/1000000000,f"iteration {i}",flush=True)
             # self.optimizer.zero_grad()
             try:
                 batch = next(self.train_iterator)
@@ -65,10 +64,8 @@ class TransformerTrainer(TrainerIter):
                     batch[k] = v.to(self.device)
                 out = self.forward(batch)  # out is a dict (we just feed it to the loss)
                 Match_loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
-                loss=Match_loss
-                # if "lambda_psuedo" in self.config and self.config["lambda_psuedo"]>0:
-                #     psuedo_loss=-((out['pos_q_rep']*(batch["topic_Rep"])).sum(dim=1)).mean()
-                #     loss+=psuedo_loss*self.config["lambda_psuedo"]                
+                loss=Match_loss  ## to seperate loss when logging
+                moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
                 # training moving average for logging
                 if self.regularizer is not None:
                     if "train" in self.regularizer:
@@ -107,16 +104,13 @@ class TransformerTrainer(TrainerIter):
                             monitor_losses["{}_q".format(reg)] = self.regularizer["eval"][reg]["loss"](
                                 out["pos_q_rep"]).mean()
                             # again, we can choose pos_q_rep or neg_q_rep indifferently
-                            if lambda_d:
-                                monitor_losses["{}_d".format(reg)] = (self.regularizer["eval"][reg]["loss"](
-                                    out["pos_d_rep"]).mean() + self.regularizer["eval"][reg]["loss"](
-                                    out["neg_d_rep"]).mean()) / 2
+                            monitor_losses["{}_d".format(reg)] = (self.regularizer["eval"][reg]["loss"](
+                                out["pos_d_rep"]).mean() + self.regularizer["eval"][reg]["loss"](
+                                out["neg_d_rep"]).mean()) / 2
             # when multiple GPUs, we need to aggregate the loss from the different GPUs (that's why the .mean())
             # see https://medium.com/huggingface/training-larger-batches-practical-tips-on-1-gpu-multi-gpu-distributed-setups-ec88c3e51255
             # for gradient accumulation  # TODO: check if everything works with gradient accumulation
             loss = loss / self.config["gradient_accumulation_steps"]
-            print(f"the loss is {loss}")
-            moving_avg_ranking_loss = 0.99 *moving_avg_ranking_loss + 0.01 * loss.item()
             # perform gradient update:
             mpm.backward(loss)
             if i % self.config["gradient_accumulation_steps"] == 0:

@@ -19,7 +19,6 @@ def retrieve_evaluate(exp_dict: DictConfig):
     batch_size = 1
     # NOTE: batch_size is set to 1, currently no batched implem for retrieval (TODO)
     for data_dir in set(exp_dict["data"]["Q_COLLECTION_PATH"]):
-        # pass
         q_collection = CollectionDatasetPreLoad(data_dir=data_dir, id_style="row_id")
         q_loader = CollectionDataLoader(dataset=q_collection, tokenizer_type=model_training_config["tokenizer_type"],
                                         max_length=model_training_config["max_length"], batch_size=batch_size,

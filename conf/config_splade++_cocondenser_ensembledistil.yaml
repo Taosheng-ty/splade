@@ -21,6 +21,6 @@ config:
       T: 50000
       targeted_rep: rep
       reg: FLOPS
-  checkpoint_dir: experiments/debugNew/checkpoint
-  index_dir: experiments/debugNew/index
-  out_dir: experiments/debugNew/out
+  checkpoint_dir: models/cocondenser_ensemble_distil/checkpoint
+  index_dir: models/cocondenser_ensemble_distil/index
+  out_dir: models/cocondenser_ensemble_distil/out

@@ -6,12 +6,12 @@ TRAIN:
   D_COLLECTION_PATH: data/msmarco/full_collection
   Q_COLLECTION_PATH: data/msmarco/train_queries/queries
   QREL_PATH: data/msmarco/train_queries/qrels.json
-  queryRepFile: output/log-doc-tf-topk-10.pkl
-  corpusRepFile: output/corpus-tf-log-tensor-dictNP.pkl
+  QueryStatsFile: 'data/msmarco/dataStats/QueryStats.pkl'
+  CorpusStatsFile: 'data/msmarco/dataStats/CorpusStats.pkl'
   psuedo-topk: 10
 
-# VALIDATION_FULL_RANKING:
-#   D_COLLECTION_PATH: data/msmarco/val_retrieval/collection
-#   Q_COLLECTION_PATH: data/msmarco/val_retrieval/queries
-#   QREL_PATH: data/msmarco/val_retrieval/qrel.json
-#   TOP_K: 500
+VALIDATION_FULL_RANKING:
+  D_COLLECTION_PATH: data/msmarco/val_retrieval/collection
+  Q_COLLECTION_PATH: data/msmarco/val_retrieval/queries
+  QREL_PATH: data/msmarco/val_retrieval/qrel.json
+  TOP_K: 500

@@ -29,7 +29,6 @@ class SiamesePairsDataLoader(DataLoaderWrapper):
         batch is a list of tuples, each tuple has 3 (text) items (q, d_pos, d_neg)
         """
         q, d_pos, d_neg = zip(*batch)
-        # print(q, d_pos, d_neg)
         q = self.tokenizer(list(q),
                            add_special_tokens=True,
                            padding="longest",  # pad to max sequence length in batch
@@ -52,7 +51,7 @@ class SiamesePairsDataLoader(DataLoaderWrapper):
         return {k: torch.tensor(v) for k, v in sample.items()}
 
 
-class      DistilSiamesePairsDataLoader(DataLoaderWrapper):
+class DistilSiamesePairsDataLoader(DataLoaderWrapper):
 
     def collate_fn(self, batch):
         """

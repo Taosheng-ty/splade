@@ -204,10 +204,10 @@ class MsMarcoHardNegativesWithPsuedo(MsMarcoHardNegatives):
         topicRep=self.convert_sparse2Dense(querySparse)
         
         query = self.query_list[idx]
-        docSparse=self.doc_tf[query]
+        docSparse=self.doc_tf[str(query)]
         docRep=self.convert_sparse2Dense(docSparse)
         
-        psuedoDocSparse=self.psuedo_doc_tf[query]
+        psuedoDocSparse=self.psuedo_doc_tf[str(query)]
         psuedoDocRep=self.convert_sparse2Dense(psuedoDocSparse)
         
         
