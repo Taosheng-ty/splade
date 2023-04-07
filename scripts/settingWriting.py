@@ -27,6 +27,9 @@ desc="toy"
 scriptTemplate="runToy.sh"
 experimentsFolder="experiments/toy/"
 os.makedirs(experimentsFolder, exist_ok=True)
+scriptTemplate="runToyNanyuan.sh"
+scriptTemplate="run11GFullNanyuan.sh"
+desc="NanYuan11G"
 for experimentName in experimentSettings:
     # Open the file
     experimentNameCur=desc+experimentName
