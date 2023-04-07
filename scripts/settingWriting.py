@@ -9,11 +9,19 @@ experimentSettings={
     "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1000",
     "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1000",
     "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1000 config.lambda_psuedo=1000",
-    "ADWithAQ":"config.lambda_Query=1000 config.lambda_Doc=1000"
+    "onlyAD":"config.lambda_Doc=1000",
+    "onlyAQ":"config.lambda_Query=1000",
+    "onlyPsuedo":"config.lambda_psuedo=1000",
+    "onlyADWPsuedo":"config.lambda_psuedo=1000 config.lambda_Doc=1000",
+    "AQWAD":"config.lambda_Doc=1000 config.lambda_Query=1000",
+    "AQWPsuedo":"config.lambda_psuedo=1000 config.lambda_Query=1000",
+    "AQWADWPsuedo":"config.lambda_psuedo=1000 config.lambda_Query=1000 config.lambda_Doc=1000 ",
 }
 # scriptTemplate="runNoGpuspecify.sh"
 scriptTemplate="runToy.sh"
-desc="toy-"
+scriptTemplate="runToyNanyuan.sh"
+scriptTemplate="run11GFullNanyuan.sh"
+desc="NanYuan11G"
 for experimentName in experimentSettings:
     # Open the file
     experimentNameCur=desc+experimentName

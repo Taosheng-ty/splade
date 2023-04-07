@@ -63,8 +63,13 @@ class TransformerTrainer(TrainerIter):
                 for k, v in batch.items():
                     batch[k] = v.to(self.device)
                 out = self.forward(batch)  # out is a dict (we just feed it to the loss)
-                Match_loss = self.loss(out).mean()  # we need to average as we obtain one loss per GPU in DataParallel
-                loss=Match_loss  ## to seperate loss when logging
+                AllMatchLoss=self.loss(out)
+                if isinstance(AllMatchLoss,dict):
+                    assert "MatchLoss" in AllMatchLoss,"MatchLoss is the loss to take gradient"
+                    MatchLoss = AllMatchLoss["MatchLoss"].mean()  # we need to average as we obtain one loss per GPU in DataParallel
+                else:
+                    MatchLoss = AllMatchLoss.mean()
+                loss=MatchLoss  ## to seperate loss when logging
                 moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
                 # training moving average for logging
                 if self.regularizer is not None:
@@ -122,7 +127,8 @@ class TransformerTrainer(TrainerIter):
                 self.training_res_handler.write("{},{}\n".format(i, loss.item()))
                 self.writer.add_scalar("batch_train_loss", loss.item(), i)
                 self.writer.add_scalar("moving_avg_ranking_loss", moving_avg_ranking_loss, i)
-                self.writer.add_scalar("Match_loss",Match_loss,i)
+                for key in AllMatchLoss:
+                    self.writer.add_scalar(key, AllMatchLoss[key].mean().item(), i)
                 print("+batch_loss_iter{}: {}".format(i, round(loss.item(), 4)))
                 if self.regularizer is not None:
                     if "train" in self.regularizer:

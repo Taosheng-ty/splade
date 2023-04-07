@@ -81,35 +81,40 @@ class HybridLoss(DistilMarginMSE):
         """out_d also contains scores from teacher
         """
         # assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
-        loss=0
+        Loss={}
+        MatchLoss=0
         if "lambda_hard" in out_d  and out_d["lambda_hard"]>0:
-            Marginal_loss=super().__call__(out_d)
-            loss+=out_d["lambda_hard"]*Marginal_loss
+            HardLoss=super().__call__(out_d)
+            Loss["HardLoss"]=out_d["lambda_hard"]*HardLoss
+            MatchLoss+=Loss["HardLoss"]
         if "lambda_psuedo" in out_d and  out_d["lambda_psuedo"]>0:
             # Psuedo_loss=-(out_d['pos_q_rep']*(out_d["topic_Rep"])).sum(dim=1)
             q=out_d['pos_q_rep']
             topic=out_d["psuedo_topic_Rep"]
             corpus=out_d["cortf_Rep"]
             Psuedo_loss=-(torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs)
-            Psuedo_loss=Psuedo_loss.sum()
-            loss+=out_d["lambda_psuedo"]*Psuedo_loss
+            Psuedo_loss=Psuedo_loss.mean()
+            Loss["PsuedoLoss"]=out_d["lambda_psuedo"]*Psuedo_loss
+            MatchLoss+=Loss["PsuedoLoss"]
         if "lambda_Query" in out_d and out_d["lambda_Query"]>0:
             d=out_d['pos_d_rep']
             topic=out_d["Qtopic_Rep"]
             corpus=out_d["Qcortf_Rep"]
             QPsuedo_loss=-(torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries)
-            QPsuedo_loss=QPsuedo_loss.sum()
-            loss+=out_d["lambda_Query"]*QPsuedo_loss
-            
+            QPsuedo_loss=QPsuedo_loss.mean()
+            Loss["QPsuedoLoss"]=out_d["lambda_Query"]*QPsuedo_loss
+            MatchLoss+=Loss["QPsuedoLoss"]            
         if "lambda_Doc" in out_d and out_d["lambda_Doc"]>0:
             #  "topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep,"psuedo_topic_Rep":psuedo_topic_Rep
             q=out_d['pos_q_rep']
             topic=out_d["topic_Rep"]
             corpus=out_d["cortf_Rep"]
-            QPsuedo_loss=-(torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs)
-            QPsuedo_loss=QPsuedo_loss.sum()
-            loss+=out_d["lambda_Doc"]*QPsuedo_loss
-        return loss  # forces the margins to be similar
+            DPsuedo_loss=-(torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs)
+            DPsuedo_loss=DPsuedo_loss.mean()
+            Loss["DPsuedoLoss"]=out_d["lambda_Doc"]*DPsuedo_loss
+            MatchLoss+=Loss["DPsuedoLoss"] 
+        Loss["MatchLoss"]=MatchLoss
+        return Loss  
 
 
 
