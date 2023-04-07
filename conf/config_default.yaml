@@ -13,7 +13,7 @@ defaults:  # (these specify which config FILES to use)
 
 # Direct PARAMETER setting
 config:  # to be provided for each run
-  checkpoint_dir: ???
-  index_dir: ???
-  out_dir: ???
+  checkpoint_dir: models/toy/checkpoint
+  index_dir: models/toy/index
+  out_dir: models/toy/out
   fp16: false

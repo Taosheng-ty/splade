@@ -1,15 +1,17 @@
+# @package _global_
+
 # FILES
 defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
   - train/config: splade_monogpu
-  - train/data: distil_from_ensemblePsuedoToy20
+  - train/data: distil_from_ensemblePsuedo
   - train/model: splade_cocondenser
   ############## INDEX ###################################
-  - index: toy
+  - index: msmarco
   ############## RETRIEVE ################################
-  - retrieve_evaluate: toy
+  - retrieve_evaluate: all
   ############### FLOPS ##################################
-  - flops: toy
+  - flops: msmarco
 
 # Direct PARAMETER setting
 config:
@@ -18,22 +20,21 @@ config:
     FLOPS:
       lambda_q: 0.5
       lambda_d: 0.4
-      T: 800
+      T: 20000
       targeted_rep: rep
       reg: FLOPS
-  checkpoint_dir: experiments/debug/checkpoint
-  index_dir: experiments/debug/index
-  out_dir: experiments/debug/out
-  train_batch_size: 10
-  eval_batch_size: 16
-  index_retrieve_batch_size: 16
-  max_length: 96
-  nb_iterations: 1000
-  train_monitoring_freq: 100
-  matching_type: splade
-  record_frequency: 100
-  warmup_steps: 100
+  psuedo_topk: 10
+  checkpoint_dir: models/cocondenser_ensemble_distil_monogpu/checkpoint
+  index_dir: models/cocondenser_ensemble_distil_monogpu/index
+  out_dir: models/cocondenser_ensemble_distil_monogpu/out
   lambda_hard: 0
   lambda_Doc: 0
   lambda_Query: 0
   lambda_psuedo: 0
+  nb_iterations: 40000
+  train_batch_size: 48  # number of gpus needs to divide this
+  eval_batch_size: 128
+  index_retrieve_batch_size: 128
+  record_frequency: 8000
+  train_monitoring_freq: 500
+  max_length: 128
