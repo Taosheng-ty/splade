@@ -16,8 +16,8 @@ config:
   loss: Hybrid
   regularizer:
     FLOPS:
-      lambda_q: 0.5
-      lambda_d: 0.4
+      lambda_q: 0.05
+      lambda_d: 0.04
       T: 800
       targeted_rep: rep
       reg: FLOPS
@@ -37,3 +37,5 @@ config:
   lambda_Doc: 0
   lambda_Query: 0
   lambda_psuedo: 0
+  q_L0_cut: 20
+  d_L0_cut: 80

@@ -6,9 +6,12 @@
 #SBATCH --mem=10GB 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:2080ti:1
-#SBATCH --account=owner-gpu-guest
-#SBATCH --partition=notchpeak-gpu-guest
+#SBATCH --gres=gpu:p100:1
+#SBATCH --account=soc-gpu-kp
+#SBATCH --partition=soc-gpu-kp
+
+## SBATCH --account=soc-gpu-kp
+## SBATCH --partition=soc-gpu-kp
 
 unset SPLADE_CONFIG_NAME
 unset SPLADE_CONFIG_FULLPATH

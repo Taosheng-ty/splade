@@ -5,23 +5,23 @@ import time
 scriptPath=os.path.dirname(os.path.abspath(__file__))
 os.chdir(scriptPath+"/..")
 experimentSettings={
-    "Hard":"config.lambda_hard=1",
-    "HardWithADWithAQ":"config.lambda_hard=1 config.lambda_Doc=1000000 config.lambda_Query=100000",
-    "HardWithADWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Doc=1000000 config.lambda_Query=100000 config.lambda_psuedo=100000",
-    "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=100000",
-    "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=100000 config.lambda_psuedo=100000",
-    "AQWADWPsuedo":"config.lambda_psuedo=100000 config.lambda_Query=100000 config.lambda_Doc=1000000",
-    "AQWAD":"config.lambda_Doc=1000000 config.lambda_Query=100000",    
-    "onlyAQ":"config.lambda_Query=100000 config.q_L0_cut=80 ",    
+    # "Hard":"config.lambda_hard=1",
+    "HardWithADWithAQ":"config.lambda_hard=1 config.lambda_Doc=10000 config.lambda_Query=10000  config.record_frequency=1000",
+    # "HardWithADWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Doc=1000 config.lambda_Query=1000 config.lambda_psuedo=1000",
+    # "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1000",
+    # "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1000 config.lambda_psuedo=1000",
+    # "AQWADWPsuedo":"config.lambda_psuedo=1000 config.lambda_Query=1000 config.lambda_Doc=1000 config.regularizer.FLOPS.lambda_d=0",
+    # "AQWAD":"config.lambda_Doc=1000 config.lambda_Query=1000 config.regularizer.FLOPS.lambda_d=0",    
+    # "onlyAQ":"config.lambda_Query=1000 config.q_L0_cut=80 config.regularizer.FLOPS.lambda_q=0 config.regularizer.FLOPS.lambda_d=0.0001 config.record_frequency=1000",    
     # "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1000",
-    # "onlyAD":"config.lambda_Doc=100000 config.regularizer.FLOPS.lambda_d=0",
-    # "onlyPsuedo":"config.lambda_psuedo=100000 config.regularizer.FLOPS.lambda_d=0",
-    # "onlyADWPsuedo":"config.lambda_psuedo=100000 config.lambda_Doc=1000000 config.regularizer.FLOPS.lambda_d=0",
+    # "onlyAD":"config.lambda_Doc=1000 config.regularizer.FLOPS.lambda_d=0",
+    # "onlyPsuedo":"config.lambda_psuedo=1000 config.regularizer.FLOPS.lambda_d=0",
+    # "onlyADWPsuedo":"config.lambda_psuedo=1000 config.lambda_Doc=1000 config.regularizer.FLOPS.lambda_d=0",
     # "AQWPsuedo":"config.lambda_psuedo=1000 config.lambda_Query=1000",
 }
-desc="fullDistill44G"
+desc="AQdebug"
 scriptTemplate="runNoGpuspecify.sh"
-experimentsFolder="experiments/Apr7"
+experimentsFolder="experiments/debug"
 
 # desc="toy"
 # scriptTemplate="runToy.sh"
@@ -53,4 +53,4 @@ for experimentName in experimentSettings:
         file.write(substituted_string)
     print(f"sbatch {runShFile}")
     os.system(f"sbatch {runShFile}")
-    time.sleep(60)
+    # time.sleep(60)
