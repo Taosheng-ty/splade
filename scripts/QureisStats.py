@@ -27,13 +27,28 @@ numToken=tokenizer.vocab_size
 #     "qrels_path":'data/msmarco/train_queries/qrels.json',
 #     }
 
-tokenizationPath='output/full/QuerytokenCop.pkl'
-QueryStatsPath='output/full/QueryStats.pkl'
+tokenizationPath='output/toy20/QuerytokenCop.pkl'
+QueryStatsPath='output/toy20/QueryStats.pkl'
+# inputDict={
+#     "dataset_path": 'data/toy_data1k/hard_negatives_scores/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz',
+#     "document_dir": 'data/toy_data1k/full_collection',
+#     "query_dir":'data/toy_data1k/train_queries/queries',
+#     "qrels_path":'data/msmarco/train_queries/qrels.json',
+#     }
 inputDict={
-    "dataset_path": 'data/msmarco/hard_negatives_scores/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz',
-    "document_dir": 'data/msmarco/full_collection',
-    "query_dir":'data/msmarco/train_queries/queries',
-    "qrels_path":'data/msmarco/train_queries/qrels.json'}
+    "dataset_path": 'data/toy_data20/hard_negatives_scores/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz',
+    "document_dir": 'data/toy_data20/full_collection',
+    "query_dir":'data/toy_data20/train_queries/queries',
+    "qrels_path":'data/msmarco/train_queries/qrels.json',
+    }
+
+# tokenizationPath='output/full/QuerytokenCop.pkl'
+# QueryStatsPath='output/full/QueryStats.pkl'
+# inputDict={
+#     "dataset_path": 'data/msmarco/hard_negatives_scores/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz',
+#     "document_dir": 'data/msmarco/full_collection',
+#     "query_dir":'data/msmarco/train_queries/queries',
+#     "qrels_path":'data/msmarco/train_queries/qrels.json'}
 
 dataset=MsMarcoHardNegatives(**inputDict)
 directory=os.path.dirname(tokenizationPath)
