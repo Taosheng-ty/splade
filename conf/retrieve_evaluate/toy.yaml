@@ -1,20 +1,11 @@
 # @package _global_
 
 data:
-  Q_COLLECTION_PATH: [ data/toy_data20/dev_queries,
-                       data/msmarco/TREC_DL_2019/queries_2019,
-                       data/msmarco/TREC_DL_2020/queries_2020 ]
-  EVAL_QREL_PATH: [ data/toy_data20/dev_qrel.json,
-                    data/msmarco/TREC_DL_2019/qrel.json,
-                    data/msmarco/TREC_DL_2019/qrel_binary.json,
-                    data/msmarco/TREC_DL_2020/qrel.json,
-                    data/msmarco/TREC_DL_2020/qrel_binary.json ]
+  Q_COLLECTION_PATH: [ data/toy_data20/dev_queries,]
+  EVAL_QREL_PATH: [ data/toy_data20/dev_qrel.json,]
 
 config:
   top_k: 1000
   eval_metric: [ [ mrr_10, recall ],
-                 [ ndcg_cut ],
-                 [ mrr_10, recall ],
-                 [ ndcg_cut ],
-                 [ mrr_10, recall ] ]
+                ]
   threshold: 0

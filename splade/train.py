@@ -133,6 +133,8 @@ def train(exp_dict: DictConfig):
     LossConfig["numQueries"]=len(data_train.query_dataset)
     if "psuedo-topk" in exp_dict["data"]["TRAIN"]:
         LossConfig["psuedo_topk"]=exp_dict["data"]["TRAIN"]["psuedo-topk"]
+    if "contrast" in config:
+        LossConfig["contrast"]=config["contrast"]
     loss = get_loss(LossConfig)
     val_loss_loader = None  # default
     if "VALIDATION_SIZE_FOR_LOSS" in exp_dict["data"]:

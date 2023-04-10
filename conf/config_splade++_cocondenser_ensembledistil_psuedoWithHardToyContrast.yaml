@@ -37,5 +37,4 @@ config:
   lambda_Doc: 0
   lambda_Query: 0
   lambda_psuedo: 0
-  q_L0_cut: 40
-  d_L0_cut: 80
+  contrast: contrastv1

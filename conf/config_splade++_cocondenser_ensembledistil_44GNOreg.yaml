@@ -3,7 +3,7 @@
 # FILES
 defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
-  - train/config: splade_24GGpu
+  - train/config: splade_monogpu
   - train/data: distil_from_ensemblePsuedo
   - train/model: splade_cocondenser
   ############## INDEX ###################################
@@ -16,13 +16,6 @@ defaults: # (these specify which config FILES to use)
 # Direct PARAMETER setting
 config:
   loss: Hybrid
-  # regularizer:
-  #   FLOPS:
-  #     lambda_q: 0.05
-  #     lambda_d: 0.04
-  #     T: 30000
-  #     targeted_rep: rep
-  #     reg: FLOPS
   psuedo_topk: 10
   checkpoint_dir: models/cocondenser_ensemble_distil_monogpu/checkpoint
   index_dir: models/cocondenser_ensemble_distil_monogpu/index
@@ -31,11 +24,12 @@ config:
   lambda_Doc: 0
   lambda_Query: 0
   lambda_psuedo: 0
-  train_batch_size: 12  # number of gpus needs to divide this
-  eval_batch_size: 24
-  index_retrieve_batch_size: 24
-  record_frequency: 5000
-  train_monitoring_freq: 100
-  warmup_steps: 3000
+  nb_iterations: 150000
+  train_batch_size: 40  # number of gpus needs to divide this
+  eval_batch_size: 128
+  index_retrieve_batch_size: 128
+  record_frequency: 10000
+  train_monitoring_freq: 500
   max_length: 128
-  nb_iterations: 50000
+  q_L0_cut: 50
+  d_L0_cut: 100

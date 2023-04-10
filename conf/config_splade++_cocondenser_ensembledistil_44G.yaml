@@ -18,9 +18,9 @@ config:
   loss: Hybrid
   regularizer:
     FLOPS:
-      lambda_q: 0.01
-      lambda_d: 0.001
-      T: 50000
+      lambda_q: 0.001
+      lambda_d: 0.0001
+      T: 100000
       targeted_rep: rep
       reg: FLOPS 
   psuedo_topk: 10
@@ -38,5 +38,5 @@ config:
   record_frequency: 10000
   train_monitoring_freq: 500
   max_length: 128
-  q_L0_cut: 20
-  d_L0_cut: 80
+  q_L0_cut: 50
+  d_L0_cut: 100

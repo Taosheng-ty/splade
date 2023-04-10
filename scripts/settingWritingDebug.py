@@ -4,28 +4,49 @@ import os
 import time
 scriptPath=os.path.dirname(os.path.abspath(__file__))
 os.chdir(scriptPath+"/..")
+# experimentSettings={
+#     # "Hard":"config.lambda_hard=1",
+#     "HardWithADWithAQ":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1",
+#     "HardWithADWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1 config.lambda_psuedo=1",
+#     "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1",
+#     "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1 config.lambda_psuedo=1",
+#     "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1",
+#     "AQWADWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1 config.lambda_Doc=1",
+#     "AQWAD":"config.lambda_Doc=1 config.lambda_Query=1",    
+#     "onlyAQ":"config.lambda_Query=1 config.regularizer.FLOPS.lambda_q=0",    
+#     "onlyAD":"config.lambda_Doc=1 config.regularizer.FLOPS.lambda_d=0 ",
+#     "onlyPsuedo":"config.lambda_psuedo=1 config.regularizer.FLOPS.lambda_d=0",
+#     "onlyADWPsuedo":"config.lambda_psuedo=1 config.lambda_Doc=1 config.regularizer.FLOPS.lambda_d=0",
+#     "AQWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1",
+# }
 experimentSettings={
     # "Hard":"config.lambda_hard=1",
-    "HardWithADWithAQ":"config.lambda_hard=1 config.lambda_Doc=10000 config.lambda_Query=10000  config.record_frequency=1000",
-    # "HardWithADWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Doc=1000 config.lambda_Query=1000 config.lambda_psuedo=1000",
-    # "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1000",
-    # "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1000 config.lambda_psuedo=1000",
-    # "AQWADWPsuedo":"config.lambda_psuedo=1000 config.lambda_Query=1000 config.lambda_Doc=1000 config.regularizer.FLOPS.lambda_d=0",
-    # "AQWAD":"config.lambda_Doc=1000 config.lambda_Query=1000 config.regularizer.FLOPS.lambda_d=0",    
-    # "onlyAQ":"config.lambda_Query=1000 config.q_L0_cut=80 config.regularizer.FLOPS.lambda_q=0 config.regularizer.FLOPS.lambda_d=0.0001 config.record_frequency=1000",    
-    # "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1000",
-    # "onlyAD":"config.lambda_Doc=1000 config.regularizer.FLOPS.lambda_d=0",
-    # "onlyPsuedo":"config.lambda_psuedo=1000 config.regularizer.FLOPS.lambda_d=0",
-    # "onlyADWPsuedo":"config.lambda_psuedo=1000 config.lambda_Doc=1000 config.regularizer.FLOPS.lambda_d=0",
-    # "AQWPsuedo":"config.lambda_psuedo=1000 config.lambda_Query=1000",
+    # "HardWithADWithAQ":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1",
+    # "HardWithADWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1 config.lambda_psuedo=1",
+    # "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1",
+    # "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1 config.lambda_psuedo=1",
+    # "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1",
+    "AQWADWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1 config.lambda_Doc=1",
+    "AQWAD":"config.lambda_Doc=1 config.lambda_Query=1",    
+    "onlyAQ":"config.lambda_Query=1",    
+    "onlyAD":"config.lambda_Doc=1",
+    "onlyPsuedo":"config.lambda_psuedo=1",
+    "onlyADWPsuedo":"config.lambda_psuedo=1 config.lambda_Doc=1",
+    "AQWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1",
 }
-desc="AQdebug"
-scriptTemplate="runNoGpuspecify.sh"
-experimentsFolder="experiments/debug"
 
-# desc="toy"
-# scriptTemplate="runToy.sh"
-# experimentsFolder="experiments/toy"
+# desc="fullDistill44G"
+# scriptTemplate="runNoGpuspecify.sh"
+# experimentsFolder="experiments/Apr8Noreg"
+
+
+# desc="11GNoReg"
+# scriptTemplate="runNoGpuspecify11GNotch.sh"
+# experimentsFolder="experiments/Apr811GNoReg"
+
+desc="toy"
+scriptTemplate="runToy.sh"
+experimentsFolder="experiments/toyMinus"
 # scriptTemplate="runToyNanyuan.sh"
 # scriptTemplate="run11GFullNanyuan.sh"
 # desc="NanYuan11G"
@@ -33,7 +54,7 @@ experimentsFolder="experiments/debug"
 os.makedirs(experimentsFolder, exist_ok=True)
 for experimentName in experimentSettings:
     # Open the file
-    experimentNameCur=desc+experimentName
+    experimentNameCur=experimentName+desc
     exprimentDir=f"{experimentsFolder}/{experimentNameCur}"
     with open(f'scripts/{scriptTemplate}', 'r') as file:
         # Read the contents of the file as a string

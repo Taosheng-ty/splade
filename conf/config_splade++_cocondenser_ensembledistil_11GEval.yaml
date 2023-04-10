@@ -9,7 +9,7 @@ defaults: # (these specify which config FILES to use)
   ############## INDEX ###################################
   - index: msmarco
   ############## RETRIEVE ################################
-  - retrieve_evaluate: all
+  - retrieve_evaluate: toyTrain
   ############### FLOPS ##################################
   - flops: msmarco
 

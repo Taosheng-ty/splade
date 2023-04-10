@@ -35,7 +35,7 @@ config:
   eval_batch_size: 24
   index_retrieve_batch_size: 24
   record_frequency: 5000
-  train_monitoring_freq: 100
+  train_monitoring_freq: 500
   warmup_steps: 3000
   max_length: 128
   nb_iterations: 50000
