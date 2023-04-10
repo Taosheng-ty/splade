@@ -16,13 +16,13 @@ defaults: # (these specify which config FILES to use)
 # Direct PARAMETER setting
 config:
   loss: Hybrid
-  regularizer:
-    FLOPS:
-      lambda_q: 0.05
-      lambda_d: 0.04
-      T: 30000
-      targeted_rep: rep
-      reg: FLOPS
+  # regularizer:
+  #   FLOPS:
+  #     lambda_q: 0.05
+  #     lambda_d: 0.04
+  #     T: 30000
+  #     targeted_rep: rep
+  #     reg: FLOPS
   psuedo_topk: 10
   checkpoint_dir: models/cocondenser_ensemble_distil_monogpu/checkpoint
   index_dir: models/cocondenser_ensemble_distil_monogpu/index
@@ -35,7 +35,7 @@ config:
   eval_batch_size: 24
   index_retrieve_batch_size: 24
   record_frequency: 5000
-  train_monitoring_freq: 500
+  train_monitoring_freq: 100
   warmup_steps: 3000
   max_length: 128
   nb_iterations: 50000

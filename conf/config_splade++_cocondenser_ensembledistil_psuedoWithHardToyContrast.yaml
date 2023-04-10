@@ -1,0 +1,40 @@
+# FILES
+defaults: # (these specify which config FILES to use)
+  ############## TRAIN ###################################
+  - train/config: splade_monogpu
+  - train/data: distil_from_ensemblePsuedoToy20
+  - train/model: splade_cocondenser
+  ############## INDEX ###################################
+  - index: toy
+  ############## RETRIEVE ################################
+  - retrieve_evaluate: toy
+  ############### FLOPS ##################################
+  - flops: toy
+
+# Direct PARAMETER setting
+config:
+  loss: Hybrid
+  # regularizer:
+  #   FLOPS:
+  #     lambda_q: 0.0
+  #     lambda_d: 0.0
+  #     T: 1000
+  #     targeted_rep: rep
+  #     reg: FLOPS
+  checkpoint_dir: experiments/debug/checkpoint
+  index_dir: experiments/debug/index
+  out_dir: experiments/debug/out
+  train_batch_size: 10
+  eval_batch_size: 32
+  index_retrieve_batch_size: 32
+  max_length: 96
+  nb_iterations: 1000
+  train_monitoring_freq: 10
+  matching_type: splade
+  record_frequency: 100
+  warmup_steps: 100
+  lambda_hard: 0
+  lambda_Doc: 0
+  lambda_Query: 0
+  lambda_psuedo: 0
+  contrast: contrastv1

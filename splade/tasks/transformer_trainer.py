@@ -48,7 +48,8 @@ class TransformerTrainer(TrainerIter):
         moving_avg_ranking_loss = 0
         mpm = amp.MixedPrecisionManager(self.fp16)
         self.optimizer.zero_grad()
-
+        q_L0_cutMask=1
+        d_L0_cutMask=1
         for i in tqdm(range(self.start_iteration, self.nb_iterations + 1)):
             self.model.train()  # train model
             # self.optimizer.zero_grad()
@@ -71,6 +72,7 @@ class TransformerTrainer(TrainerIter):
                     MatchLoss = AllMatchLoss.mean()
                 loss=MatchLoss  ## to seperate loss when logging
                 moving_avg_ranking_loss = 0.99 * moving_avg_ranking_loss + 0.01 * loss.item()
+
                 # training moving average for logging
                 if self.regularizer is not None:
                     if "train" in self.regularizer:
@@ -90,19 +92,24 @@ class TransformerTrainer(TrainerIter):
                             # of the representation to regularize (for instance the model could output several
                             # representations e.g. a semantic rep and a lexical rep) => this is just a general case
                             # for the Trainer
+                            
                             regularization_losses[reg] = 0
                             if lambda_q:
-                                regularization_losses[reg] += (self.regularizer["train"][reg]["loss"](
+                                q_reg= (self.regularizer["train"][reg]["loss"](
                                     out["pos_q_{}".format(targeted_rep)]) * lambda_q).mean()
+                                regularization_losses[reg] +=q_reg
+                                loss = loss+q_reg*q_L0_cutMask
                             if lambda_d:
-                                regularization_losses[reg] += ((self.regularizer["train"][reg]["loss"](
+                                d_reg= ((self.regularizer["train"][reg]["loss"](
                                     out["pos_d_{}".format(targeted_rep)]) * lambda_d).mean() +
                                                                (self.regularizer["train"][reg]["loss"](
                                                                    out["neg_d_{}".format(
                                                                        targeted_rep)]) * lambda_d).mean()) / 2
+                                regularization_losses[reg] +=d_reg*d_L0_cutMask
+                                loss = loss+d_reg
                             # NOTE: we take the rep of pos q for queries, but it would be equivalent to take the neg
                             # (because we consider triplets, so the rep of pos and neg are the same)
-                            loss = loss+sum(regularization_losses.values())
+                            # loss = loss+sum(regularization_losses.values())
                     with torch.no_grad():
                         monitor_losses = {}
                         for reg in self.regularizer["eval"]:
@@ -112,6 +119,12 @@ class TransformerTrainer(TrainerIter):
                             monitor_losses["{}_d".format(reg)] = (self.regularizer["eval"][reg]["loss"](
                                 out["pos_d_rep"]).mean() + self.regularizer["eval"][reg]["loss"](
                                 out["neg_d_rep"]).mean()) / 2
+                        if "q_L0_cut" in self.config:
+                            if monitor_losses["L0_q"]<self.config["q_L0_cut"]:
+                                q_L0_cutMask=0 
+                        if "d_L0_cut" in self.config:
+                            if monitor_losses["L0_d"]<self.config["d_L0_cut"]:
+                                d_L0_cutMask=0 
             # when multiple GPUs, we need to aggregate the loss from the different GPUs (that's why the .mean())
             # see https://medium.com/huggingface/training-larger-batches-practical-tips-on-1-gpu-multi-gpu-distributed-setups-ec88c3e51255
             # for gradient accumulation  # TODO: check if everything works with gradient accumulation
@@ -127,8 +140,9 @@ class TransformerTrainer(TrainerIter):
                 self.training_res_handler.write("{},{}\n".format(i, loss.item()))
                 self.writer.add_scalar("batch_train_loss", loss.item(), i)
                 self.writer.add_scalar("moving_avg_ranking_loss", moving_avg_ranking_loss, i)
-                for key in AllMatchLoss:
-                    self.writer.add_scalar(key, AllMatchLoss[key].mean().item(), i)
+                if isinstance(AllMatchLoss,dict):
+                    for key in AllMatchLoss:
+                        self.writer.add_scalar(key, AllMatchLoss[key].mean().item(), i)
                 print("+batch_loss_iter{}: {}".format(i, round(loss.item(), 4)))
                 if self.regularizer is not None:
                     if "train" in self.regularizer:

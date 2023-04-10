@@ -1,0 +1,41 @@
+# @package _global_
+
+# FILES
+defaults: # (these specify which config FILES to use)
+  ############## TRAIN ###################################
+  - train/config: splade_24GGpu
+  - train/data: distil_from_ensemblePsuedo
+  - train/model: splade_cocondenser
+  ############## INDEX ###################################
+  - index: msmarco
+  ############## RETRIEVE ################################
+  - retrieve_evaluate: all
+  ############### FLOPS ##################################
+  - flops: msmarco
+
+# Direct PARAMETER setting
+config:
+  loss: Hybrid
+  # regularizer:
+  #   FLOPS:
+  #     lambda_q: 0.05
+  #     lambda_d: 0.04
+  #     T: 30000
+  #     targeted_rep: rep
+  #     reg: FLOPS
+  psuedo_topk: 10
+  checkpoint_dir: models/cocondenser_ensemble_distil_monogpu/checkpoint
+  index_dir: models/cocondenser_ensemble_distil_monogpu/index
+  out_dir: models/cocondenser_ensemble_distil_monogpu/out
+  lambda_hard: 0
+  lambda_Doc: 0
+  lambda_Query: 0
+  lambda_psuedo: 0
+  train_batch_size: 12  # number of gpus needs to divide this
+  eval_batch_size: 24
+  index_retrieve_batch_size: 24
+  record_frequency: 5000
+  train_monitoring_freq: 500
+  warmup_steps: 3000
+  max_length: 128
+  nb_iterations: 50000

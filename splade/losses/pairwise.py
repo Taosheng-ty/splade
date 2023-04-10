@@ -76,7 +76,17 @@ class HybridLoss(DistilMarginMSE):
         self.numDocs=numDocs
         self.numQueries=numQueries
         self.psuedo_topk=psuedo_topk
+        self.contrastfcn=self.contrast
+        if "contrast" in kwparam:
+            contrastfcns={"contrast":self.contrast,"contrastv1":self.contrastv1}
+            self.contrastfcn=contrastfcns[kwparam["contrast"]]
         super().__init__(*param,**kwparam)
+    def contrast(self,q_rep,topic,corpus,numDocs,numQ=1):
+        loss=-torch.log((torch.sum(q_rep * topic, dim=-1)+numQ)/(torch.sum(q_rep * corpus, dim=-1)+numDocs))
+        return loss
+    def contrastv1(self,q_rep,topic,corpus,numDocs,numQ=1):
+        loss=-((torch.sum(q_rep * topic, dim=-1)/numQ)-(torch.sum(q_rep * corpus, dim=-1)/numDocs))
+        return loss
     def __call__(self, out_d):
         """out_d also contains scores from teacher
         """
@@ -92,7 +102,8 @@ class HybridLoss(DistilMarginMSE):
             q=out_d['pos_q_rep']
             topic=out_d["psuedo_topic_Rep"]
             corpus=out_d["cortf_Rep"]
-            Psuedo_loss=-(torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs)
+            # Psuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
+            Psuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,self.psuedo_topk)
             Psuedo_loss=Psuedo_loss.mean()
             Loss["PsuedoLoss"]=out_d["lambda_psuedo"]*Psuedo_loss
             MatchLoss+=Loss["PsuedoLoss"]
@@ -100,7 +111,8 @@ class HybridLoss(DistilMarginMSE):
             d=out_d['pos_d_rep']
             topic=out_d["Qtopic_Rep"]
             corpus=out_d["Qcortf_Rep"]
-            QPsuedo_loss=-(torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries)
+            # QPsuedo_loss=-torch.log((torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries))
+            QPsuedo_loss=self.contrastfcn(d,topic,corpus,self.numQueries,1)
             QPsuedo_loss=QPsuedo_loss.mean()
             Loss["QPsuedoLoss"]=out_d["lambda_Query"]*QPsuedo_loss
             MatchLoss+=Loss["QPsuedoLoss"]            
@@ -109,13 +121,13 @@ class HybridLoss(DistilMarginMSE):
             q=out_d['pos_q_rep']
             topic=out_d["topic_Rep"]
             corpus=out_d["cortf_Rep"]
-            DPsuedo_loss=-(torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs)
+            # DPsuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
+            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)
             DPsuedo_loss=DPsuedo_loss.mean()
             Loss["DPsuedoLoss"]=out_d["lambda_Doc"]*DPsuedo_loss
             MatchLoss+=Loss["DPsuedoLoss"] 
         Loss["MatchLoss"]=MatchLoss
         return Loss  
-
 
 
 class DistilKLLoss:

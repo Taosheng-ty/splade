@@ -146,7 +146,7 @@ class MsMarcoHardNegatives(Dataset):
     def __len__(self):
         return len(self.query_list)
 
-    def __getitem__(self, idx,returnId=True):
+    def __getitem__(self, idx,returnId=False):
         query = self.query_list[idx]
         q = self.query_dataset[str(query)][1]
         candidates_dict = self.scores_dict[query]
