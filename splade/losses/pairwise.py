@@ -125,7 +125,6 @@ class HybridLoss(DistilMarginMSE):
             q=out_d['pos_q_rep']
             d=out_d['pos_d_rep']
             topic=out_d["topic_Rep"]
-            corpus=out_d["cortf_Rep"]
             # DPsuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
             DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)+self.contrastfcn(q,d,corpus,self.numDocs,1)
             DPsuedo_loss=DPsuedo_loss.mean()

@@ -153,7 +153,7 @@ class TransformerTrainer(TrainerIter):
                         self.writer.add_scalar("batch_{}".format(monitor_loss),
                                                monitor_losses[monitor_loss].item(), i)
             # various metrics we save:
-            if i % self.record_frequency == 1:
+            if i % self.record_frequency == 0:
                 if self.validation or (self.test_loader is not None):
                     self.model.eval()
                     with torch.no_grad():
