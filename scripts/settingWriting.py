@@ -21,11 +21,11 @@ os.chdir(scriptPath+"/..")
 # }
 experimentSettings={
     # "Hard":"config.lambda_hard=1",
-    "HardWithADWithAQ":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1",
-    "HardWithADWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1 config.lambda_psuedo=1",
-    "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1",
-    "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1 config.lambda_psuedo=1",
-    "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1",
+    # "HardWithADWithAQ":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1",
+    # "HardWithADWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Doc=1 config.lambda_Query=1 config.lambda_psuedo=1",
+    # "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1",
+    # "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1 config.lambda_psuedo=1",
+    # "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1",
     "AQWADWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1 config.lambda_Doc=1",
     "AQWAD":"config.lambda_Doc=1 config.lambda_Query=1",    
     "onlyAQ":"config.lambda_Query=1",    
@@ -33,20 +33,22 @@ experimentSettings={
     "onlyPsuedo":"config.lambda_psuedo=1",
     "onlyADWPsuedo":"config.lambda_psuedo=1 config.lambda_Doc=1",
     "AQWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1",
+    # "InBatch":"config.inBatch=1",
+    # "InBatchWithAQADPsuedo":"config.inBatch=1 config.lambda_psuedo=1 config.lambda_Query=1 config.lambda_Doc=1",
 }
 
-desc="fullDistill44G"
-scriptTemplate="runNoGpuspecify.sh"
-experimentsFolder="experiments/Apr8Noreg"
+# desc="fullDistill44G"
+# scriptTemplate="runNoGpuspecify.sh"
+# experimentsFolder="experiments/Apr8Noreg"
 
 
 # desc="11GNoReg"
 # scriptTemplate="runNoGpuspecify11GNotch.sh"
 # experimentsFolder="experiments/Apr811GNoReg"
 
-# desc="toy"
-# scriptTemplate="runToy.sh"
-# experimentsFolder="experiments/toy"
+desc="toy"
+scriptTemplate="runToyNanyuan.sh"
+experimentsFolder="experiments/toy1kMix"
 # scriptTemplate="runToyNanyuan.sh"
 # scriptTemplate="run11GFullNanyuan.sh"
 # desc="NanYuan11G"

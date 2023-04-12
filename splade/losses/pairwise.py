@@ -77,12 +77,14 @@ class HybridLoss(DistilMarginMSE):
         self.numQueries=numQueries
         self.psuedo_topk=psuedo_topk
         self.contrastfcn=self.contrast
+        self.InBatchPairwiseNLL=InBatchPairwiseNLL()
         if "contrast" in kwparam:
             contrastfcns={"contrast":self.contrast,"contrastv1":self.contrastv1}
             self.contrastfcn=contrastfcns[kwparam["contrast"]]
         super().__init__(*param,**kwparam)
     def contrast(self,q_rep,topic,corpus,numDocs,numQ=1):
-        loss=-torch.log((torch.sum(q_rep * topic, dim=-1)+numQ)/(torch.sum(q_rep * corpus, dim=-1)+numDocs))
+        # loss=-torch.log((torch.sum(q_rep * topic, dim=-1)+numQ)/(torch.sum(q_rep * corpus, dim=-1)+numDocs))
+        loss=-torch.log(torch.sum(q_rep * topic, dim=-1)/numQ+1)+torch.log((torch.sum(q_rep * corpus, dim=-1)/numDocs+1))
         return loss
     def contrastv1(self,q_rep,topic,corpus,numDocs,numQ=1):
         loss=-((torch.sum(q_rep * topic, dim=-1)/numQ)-(torch.sum(q_rep * corpus, dim=-1)/numDocs))
@@ -93,6 +95,8 @@ class HybridLoss(DistilMarginMSE):
         # assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
         Loss={}
         MatchLoss=0
+        corpus=out_d["cortf_Rep"]+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
+        qcorpus=out_d["Qcortf_Rep"]+torch.sum(out_d['pos_q_rep'],dim=0,keepdim=True)
         if "lambda_hard" in out_d  and out_d["lambda_hard"]>0:
             HardLoss=super().__call__(out_d)
             Loss["HardLoss"]=out_d["lambda_hard"]*HardLoss
@@ -101,7 +105,6 @@ class HybridLoss(DistilMarginMSE):
             # Psuedo_loss=-(out_d['pos_q_rep']*(out_d["topic_Rep"])).sum(dim=1)
             q=out_d['pos_q_rep']
             topic=out_d["psuedo_topic_Rep"]
-            corpus=out_d["cortf_Rep"]
             # Psuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
             Psuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,self.psuedo_topk)
             Psuedo_loss=Psuedo_loss.mean()
@@ -110,22 +113,28 @@ class HybridLoss(DistilMarginMSE):
         if "lambda_Query" in out_d and out_d["lambda_Query"]>0:
             d=out_d['pos_d_rep']
             topic=out_d["Qtopic_Rep"]
-            corpus=out_d["Qcortf_Rep"]
+            q=out_d['pos_q_rep']
+            
             # QPsuedo_loss=-torch.log((torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries))
-            QPsuedo_loss=self.contrastfcn(d,topic,corpus,self.numQueries,1)
+            QPsuedo_loss=self.contrastfcn(d,topic,qcorpus,self.numQueries,1)+self.contrastfcn(d,q,qcorpus,self.numQueries,1)
             QPsuedo_loss=QPsuedo_loss.mean()
             Loss["QPsuedoLoss"]=out_d["lambda_Query"]*QPsuedo_loss
             MatchLoss+=Loss["QPsuedoLoss"]            
         if "lambda_Doc" in out_d and out_d["lambda_Doc"]>0:
             #  "topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep,"psuedo_topic_Rep":psuedo_topic_Rep
             q=out_d['pos_q_rep']
+            d=out_d['pos_d_rep']
             topic=out_d["topic_Rep"]
             corpus=out_d["cortf_Rep"]
             # DPsuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
-            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)
+            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)+self.contrastfcn(q,d,corpus,self.numDocs,1)
             DPsuedo_loss=DPsuedo_loss.mean()
             Loss["DPsuedoLoss"]=out_d["lambda_Doc"]*DPsuedo_loss
             MatchLoss+=Loss["DPsuedoLoss"] 
+        if "inBatch" in out_d and out_d["inBatch"]>0:
+            inBatchLoss=self.InBatchPairwiseNLL(out_d)
+            Loss["inBatch"]=out_d["inBatch"]*inBatchLoss
+            MatchLoss+=Loss["inBatch"] 
         Loss["MatchLoss"]=MatchLoss
         return Loss  
 

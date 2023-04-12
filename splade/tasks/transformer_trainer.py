@@ -136,7 +136,7 @@ class TransformerTrainer(TrainerIter):
                 if self.scheduler is not None:
                     self.scheduler.step()
                     self.writer.add_scalar("lr", self.scheduler.get_last_lr()[0], i - 1)
-            if i % self.config["train_monitoring_freq"] == 0:
+            if i % self.config["train_monitoring_freq"] == 1:
                 self.training_res_handler.write("{},{}\n".format(i, loss.item()))
                 self.writer.add_scalar("batch_train_loss", loss.item(), i)
                 self.writer.add_scalar("moving_avg_ranking_loss", moving_avg_ranking_loss, i)
@@ -153,7 +153,7 @@ class TransformerTrainer(TrainerIter):
                         self.writer.add_scalar("batch_{}".format(monitor_loss),
                                                monitor_losses[monitor_loss].item(), i)
             # various metrics we save:
-            if i % self.record_frequency == 0:
+            if i % self.record_frequency == 1:
                 if self.validation or (self.test_loader is not None):
                     self.model.eval()
                     with torch.no_grad():
