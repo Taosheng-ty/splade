@@ -26,20 +26,21 @@ experimentSettings={
     # "HardWithAQ":"config.lambda_hard=1 config.lambda_Query=1",
     # "HardWithAQWithPsuedo":"config.lambda_hard=1 config.lambda_Query=1 config.lambda_psuedo=1",
     # "HardWithAD":"config.lambda_hard=1 config.lambda_Doc=1",
+    
     "AQWADWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1 config.lambda_Doc=1",
     "AQWAD":"config.lambda_Doc=1 config.lambda_Query=1",    
     "onlyAQ":"config.lambda_Query=1",    
     "onlyAD":"config.lambda_Doc=1",
-    "onlyPsuedo":"config.lambda_psuedo=1",
     "onlyADWPsuedo":"config.lambda_psuedo=1 config.lambda_Doc=1",
     "AQWPsuedo":"config.lambda_psuedo=1 config.lambda_Query=1",
-    # "InBatch":"config.inBatch=1",
+    "onlyPsuedo":"config.lambda_psuedo=1",
+    "InBatch":"config.inBatch=1",
     # "InBatchWithAQADPsuedo":"config.inBatch=1 config.lambda_psuedo=1 config.lambda_Query=1 config.lambda_Doc=1",
 }
 
-# desc="fullDistill44G"
+# desc="full44G"
 # scriptTemplate="runNoGpuspecify.sh"
-# experimentsFolder="experiments/Apr8Noreg"
+# experimentsFolder="experiments/Apr13Mix"
 
 
 # desc="11GNoReg"
@@ -47,8 +48,8 @@ experimentSettings={
 # experimentsFolder="experiments/Apr811GNoReg"
 
 desc="toy"
-scriptTemplate="runToyNanyuan.sh"
-experimentsFolder="experiments/toy1kMix"
+scriptTemplate="runToy.sh"
+experimentsFolder="experiments/toy1kMixApr13"
 # scriptTemplate="runToyNanyuan.sh"
 # scriptTemplate="run11GFullNanyuan.sh"
 # desc="NanYuan11G"

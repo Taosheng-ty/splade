@@ -38,5 +38,5 @@ config:
   record_frequency: 10000
   train_monitoring_freq: 500
   max_length: 128
-  q_L0_cut: 50
-  d_L0_cut: 100
+  # q_L0_cut: 50
+  # d_L0_cut: 100
