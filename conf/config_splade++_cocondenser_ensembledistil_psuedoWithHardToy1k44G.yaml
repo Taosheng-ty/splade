@@ -3,7 +3,7 @@ defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
   - train/config: splade_monogpu
   - train/data: distil_from_ensemblePsuedoToy1k
-  - train/model: splade_cocondenser
+  - train/model: splade_cocondenserCosine
   ############## INDEX ###################################
   - index: toy
   ############## RETRIEVE ################################
@@ -24,9 +24,9 @@ config:
   checkpoint_dir: experiments/debug/checkpoint
   index_dir: experiments/debug/index
   out_dir: experiments/debug/out
-  train_batch_size: 56
-  eval_batch_size: 256
-  index_retrieve_batch_size: 256
+  train_batch_size: 44
+  eval_batch_size: 128
+  index_retrieve_batch_size: 128
   max_length: 128
   nb_iterations: 10000
   train_monitoring_freq: 50

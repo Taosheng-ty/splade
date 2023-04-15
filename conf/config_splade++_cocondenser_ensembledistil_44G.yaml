@@ -5,7 +5,7 @@ defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
   - train/config: splade_monogpu
   - train/data: distil_from_ensemblePsuedo
-  - train/model: splade_cocondenser
+  - train/model: splade_cocondenser_trained
   ############## INDEX ###################################
   - index: msmarco
   ############## RETRIEVE ################################
@@ -32,7 +32,7 @@ config:
   lambda_Query: 0
   lambda_psuedo: 0
   nb_iterations: 150000
-  train_batch_size: 40  # number of gpus needs to divide this
+  train_batch_size: 44  # number of gpus needs to divide this
   eval_batch_size: 128
   index_retrieve_batch_size: 128
   record_frequency: 10000
