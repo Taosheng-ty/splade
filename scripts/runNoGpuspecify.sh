@@ -3,7 +3,7 @@
 #SBATCH --output=${experimentsFolder}/${experimentName}/logs/run.out
 #SBATCH --error=${experimentsFolder}/${experimentName}/logs/run.err
 #SBATCH --time=2-23:00:00
-#SBATCH --mem=80GB 
+#SBATCH --mem=120GB 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:a100:1
