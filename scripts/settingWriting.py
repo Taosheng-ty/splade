@@ -40,7 +40,7 @@ experimentSettings={
 
 desc="full44G"
 scriptTemplate="runNoGpuspecify.sh"
-experimentsFolder="experiments/Apr15Retrain"
+experimentsFolder="experiments/Apr16Retrain"
 
 
 # desc="11GNoReg"
