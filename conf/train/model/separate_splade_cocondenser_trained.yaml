@@ -1,0 +1,11 @@
+# @package _global_
+
+init_dict:
+  model_type_or_dir: experiments/PretrainedModel/splade_distil_CoCodenser_medium
+  model_type_or_dir_q: experiments/PretrainedModel/splade_distil_CoCodenser_medium
+  freeze_d_model: 0
+  agg: max
+  fp16: true
+
+config:
+  tokenizer_type: experiments/PretrainedModel/splade_distil_CoCodenser_medium
