@@ -178,6 +178,8 @@ class MsMarcoHardNegativesWithPsuedo(MsMarcoHardNegatives):
         self.corpus_tf,self.doc_tf,self.psuedo_doc_tf=CorpusStats["corpus"],CorpusStats["pos_tf"],CorpusStats["psuedo_tf"]   
         with open (queryStatsPath, 'rb') as f:
             QueryStats=pickle.load(f)
+        if self.psuedo_doc_tf is None:
+            self.psuedo_doc_tf=self.doc_tf
         self.Qcorpus_tf,self.Qquery_tf=QueryStats["corpus"],QueryStats["pos_tf"]
         # self.cortf_Rep=self.cortf_Rep.type(torch.float32).cpu().numpy()
         numDocs=len(self.document_dataset)

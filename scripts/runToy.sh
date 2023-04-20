@@ -6,7 +6,7 @@
 #SBATCH --mem=10GB 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:a100:1
+#SBATCH --gres=gpu:2080ti:1
 #SBATCH --account=owner-gpu-guest
 #SBATCH --partition=notchpeak-gpu-guest
 
@@ -16,7 +16,8 @@
 unset SPLADE_CONFIG_NAME
 unset SPLADE_CONFIG_FULLPATH
 # export SPLADE_CONFIG_NAME="config_splade++_cocondenser_ensembledistil_psuedoWithHardToy"
-export SPLADE_CONFIG_NAME="config_splade++_cocondenser_ensembledistil_psuedoWithHardToy1k44G"
+# export SPLADE_CONFIG_NAME="config_splade++_cocondenser_ensembledistil_psuedoWithHardToy1k44G"
+export SPLADE_CONFIG_NAME="config_splade++_cocondenser_ensembledistil_psuedoWithHardToy1k"
 python3 -m splade.all  config.checkpoint_dir=${experimentsFolder}/${experimentName}/checkpoint   config.index_dir=${experimentsFolder}/${experimentName}/index   config.out_dir=${experimentsFolder}/${experimentName}/out ${Lossweight}
 unset SPLADE_CONFIG_NAME
 # experimentPath="/uufs/chpc.utah.edu/common/home/u1265233/document/projects/splade/${experimentsFolder}"

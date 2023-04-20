@@ -6,8 +6,8 @@ TRAIN:
   D_COLLECTION_PATH: data/toy_data1k/full_collection/
   Q_COLLECTION_PATH: data/toy_data1k/train_queries/queries
   QREL_PATH: data/msmarco/train_queries/qrels.json
-  QueryStatsFile: 'data/toy_data1k/dataStats/QueryStats.pkl'
-  CorpusStatsFile: 'data/toy_data1k/dataStats/CorpusStats.pkl'
+  QueryStatsFile: 'data/toy_data1k/embStats/QueryStats.pkl'
+  CorpusStatsFile: 'data/toy_data1k/embStats/CorpusStats.pkl'
   psuedo-topk: 10
 VALIDATION_FULL_RANKING:
   D_COLLECTION_PATH: data/toy_data20/full_collection/

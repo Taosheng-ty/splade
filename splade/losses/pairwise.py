@@ -95,8 +95,10 @@ class HybridLoss(DistilMarginMSE):
         # assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
         Loss={}
         MatchLoss=0
-        corpus=out_d["cortf_Rep"]+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
-        qcorpus=out_d["Qcortf_Rep"]+torch.sum(out_d['pos_q_rep'],dim=0,keepdim=True)
+        # corpus=out_d["cortf_Rep"]+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
+        # qcorpus=out_d["Qcortf_Rep"]+torch.sum(out_d['pos_q_rep'],dim=0,keepdim=True)
+        corpus=out_d["cortf_Rep"]
+        qcorpus=out_d["Qcortf_Rep"]
         if "lambda_hard" in out_d  and out_d["lambda_hard"]>0:
             HardLoss=super().__call__(out_d)
             Loss["HardLoss"]=out_d["lambda_hard"]*HardLoss
@@ -105,29 +107,40 @@ class HybridLoss(DistilMarginMSE):
             # Psuedo_loss=-(out_d['pos_q_rep']*(out_d["topic_Rep"])).sum(dim=1)
             q=out_d['pos_q_rep']
             d=out_d['pos_d_rep']
-            topic=out_d["psuedo_topic_Rep"]+d
+            topic=out_d["psuedo_topic_Rep"]/(corpus+1e-10)
+            ratio=d.max().detach()/topic.max()*self.psuedo_topk
+            topic=topic*ratio+d
+            corpusCur=ratio+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
             # Psuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
-            Psuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,self.psuedo_topk+1)
+            Psuedo_loss=self.contrastfcn(q,topic,corpusCur,self.numDocs,self.psuedo_topk+1)
             Psuedo_loss=Psuedo_loss.mean()
             Loss["PsuedoLoss"]=out_d["lambda_psuedo"]*Psuedo_loss
             MatchLoss+=Loss["PsuedoLoss"]
         if "lambda_Query" in out_d and out_d["lambda_Query"]>0:
             d=out_d['pos_d_rep']
-            topic=out_d["Qtopic_Rep"]
+            # topic=out_d["Qtopic_Rep"]
             q=out_d['pos_q_rep']
-            
+            topic=out_d["Qtopic_Rep"]/(qcorpus+1e-10)
+            ratio=q.max().detach()/topic.max()
+            topic=topic*ratio          
+            qcorpusCur=ratio+torch.sum(out_d['pos_q_rep'],dim=0,keepdim=True)
             # QPsuedo_loss=-torch.log((torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries))
-            QPsuedo_loss=self.contrastfcn(d,topic,qcorpus,self.numQueries,1)+self.contrastfcn(d,q,qcorpus,self.numQueries,1)
+            QPsuedo_loss=self.contrastfcn(d,topic,qcorpusCur,self.numQueries,1)+self.contrastfcn(d,q,qcorpusCur,self.numQueries,1)
             QPsuedo_loss=QPsuedo_loss.mean()
             Loss["QPsuedoLoss"]=out_d["lambda_Query"]*QPsuedo_loss
             MatchLoss+=Loss["QPsuedoLoss"]            
         if "lambda_Doc" in out_d and out_d["lambda_Doc"]>0:
             #  "topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep,"psuedo_topic_Rep":psuedo_topic_Rep
             q=out_d['pos_q_rep']
-            d=out_d['pos_d_rep']
+            # d=out_d['pos_d_rep']
+            # topic=out_d["topic_Rep"]
             topic=out_d["topic_Rep"]
+            corpus=out_d["cortf_Rep"]
+            # ratio=d.max().detach()/topic.max()
+            # topic=topic*ratio          
+            # corpusCur=ratio+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
             # DPsuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
-            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)+self.contrastfcn(q,d,corpus,self.numDocs,1)
+            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)
             DPsuedo_loss=DPsuedo_loss.mean()
             Loss["DPsuedoLoss"]=out_d["lambda_Doc"]*DPsuedo_loss
             MatchLoss+=Loss["DPsuedoLoss"] 

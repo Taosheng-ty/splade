@@ -35,7 +35,7 @@ config:
   train_batch_size: 44  # number of gpus needs to divide this
   eval_batch_size: 128
   index_retrieve_batch_size: 128
-  record_frequency: 10000
+  record_frequency: 5000
   train_monitoring_freq: 500
   max_length: 128
   # q_L0_cut: 50

@@ -33,7 +33,7 @@ class TransformerTrainer(TrainerIter):
         if self.test_loader is not None:
             pass
         assert "gradient_accumulation_steps" in self.config, "need to setup gradient accumulation steps in config"
-        # self.only_topic=True if "lambda_hard" in self.config and self.config["lambda_hard"]==0 else False
+        self.only_topic=self.config["onlyTopic"] if "onlyTopic" in self.config else False
     def forward(self, batch):
         """method that encapsulates the behaviour of a trainer 'forward'"""
         raise NotImplementedError
@@ -153,7 +153,7 @@ class TransformerTrainer(TrainerIter):
                         self.writer.add_scalar("batch_{}".format(monitor_loss),
                                                monitor_losses[monitor_loss].item(), i)
             # various metrics we save:
-            if i % self.record_frequency == 0:
+            if i % self.record_frequency == 1:
                 if self.validation or (self.test_loader is not None):
                     self.model.eval()
                     with torch.no_grad():
