@@ -84,7 +84,7 @@ class HybridLoss(DistilMarginMSE):
         super().__init__(*param,**kwparam)
     def contrast(self,q_rep,topic,corpus,numDocs,numQ=1):
         # loss=-torch.log((torch.sum(q_rep * topic, dim=-1)+numQ)/(torch.sum(q_rep * corpus, dim=-1)+numDocs))
-        loss=-torch.log(torch.sum(q_rep * topic, dim=-1)/numQ+1)+torch.log((torch.sum(q_rep, dim=-1)/numDocs+1))
+        loss=-torch.log(torch.sum(q_rep * topic, dim=-1)/numQ+1)+torch.log((torch.sum(q_rep * corpus, dim=-1)/numDocs+1))
         return loss
     def contrastv1(self,q_rep,topic,corpus,numDocs,numQ=1):
         loss=-((torch.sum(q_rep * topic, dim=-1)/numQ)-(torch.sum(q_rep * corpus, dim=-1)/numDocs))
@@ -132,14 +132,15 @@ class HybridLoss(DistilMarginMSE):
         if "lambda_Doc" in out_d and out_d["lambda_Doc"]>0:
             #  "topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep,"psuedo_topic_Rep":psuedo_topic_Rep
             q=out_d['pos_q_rep']
-            d=out_d['pos_d_rep']
+            # d=out_d['pos_d_rep']
             # topic=out_d["topic_Rep"]
-            topic=out_d["topic_Rep"]/(corpus+1e-10)
-            ratio=d.max().detach()/topic.max()
-            topic=topic*ratio          
-            corpusCur=ratio+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
+            topic=out_d["topic_Rep"]
+            corpus=out_d["cortf_Rep"]
+            # ratio=d.max().detach()/topic.max()
+            # topic=topic*ratio          
+            # corpusCur=ratio+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
             # DPsuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
-            DPsuedo_loss=self.contrastfcn(q,topic,corpusCur,self.numDocs,1)+self.contrastfcn(q,d,corpusCur,self.numDocs,1)
+            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)
             DPsuedo_loss=DPsuedo_loss.mean()
             Loss["DPsuedoLoss"]=out_d["lambda_Doc"]*DPsuedo_loss
             MatchLoss+=Loss["DPsuedoLoss"] 

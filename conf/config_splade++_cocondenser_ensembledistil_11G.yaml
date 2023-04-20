@@ -5,7 +5,7 @@ defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
   - train/config: splade_24GGpu
   - train/data: distil_from_ensemblePsuedo
-  - train/model: splade_cocondenser
+  - train/model: splade_cocondenser_trained
   ############## INDEX ###################################
   - index: msmarco
   ############## RETRIEVE ################################
