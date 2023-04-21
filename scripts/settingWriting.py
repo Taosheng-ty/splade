@@ -29,11 +29,11 @@ experimentSettings={
     
     # "AQWADWPsuedo":"config.lambda_psuedo=100  config.lambda_Query=100  config.lambda_Doc=100"  ,
     # "AQWAD":"config.lambda_Doc=100  config.lambda_Query=100"  ,    
-    # "onlyAQ":"config.lambda_Query=100"  ,    
+    # "onlyAQ":"config.lambda_Query=1"  ,    
     "onlyAD":"config.lambda_Doc=1"  ,
-    # "onlyADWPsuedo":"config.lambda_psuedo=100  config.lambda_Doc=100"  ,
+    # "onlyADWPsuedo":"config.lambda_psuedo=1  config.lambda_Doc=10"  ,
     # "AQWPsuedo":"config.lambda_psuedo=100  config.lambda_Query=100"  ,
-    # "onlyPsuedo":"config.lambda_psuedo=100",
+    # "onlyPsuedo":"config.lambda_psuedo=1",
     # "InBatch":"config.inBatch=100"  ,
     # "InBatchWithAQADPsuedo":"config.inBatch=100  config.lambda_psuedo=100  config.lambda_Query=100  config.lambda_Doc=100"  ,
 }
@@ -42,9 +42,9 @@ experimentSettings={
 # for AQ in AQs:
 #     experimentSettings["HardWithAQ"+str(AQ)]=f"config.lambda_hard=1 config.lambda_Query={AQ}"
     
-desc="full44G"
-scriptTemplate="runNoGpuspecify.sh"
-experimentsFolder="experiments/Apr18OnlyAQ"
+# desc="full44G"
+# scriptTemplate="runNoGpuspecify.sh"
+# experimentsFolder="experiments/Apr20FixD"
 
 
 # desc="11GNoReg"
@@ -81,5 +81,6 @@ for experimentName in experimentSettings:
     with open(runShFile,"w") as file:
         file.write(substituted_string)
     print(f"sbatch {runShFile}")
+    # time.sleep(3*3600)
     os.system(f"sbatch {runShFile}")
     # time.sleep(60)

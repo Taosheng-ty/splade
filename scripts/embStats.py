@@ -7,6 +7,7 @@ scriptPath=os.path.dirname(os.path.abspath(__file__))
 os.chdir(scriptPath+"/..")
 sys.path.insert(0,".")
 # %%
+import glob
 import torch
 from tqdm.auto import tqdm
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -42,38 +43,55 @@ class SparseEmbedding(SparseIndexing):
     def emb(self, collection_loader,storePath,id_dict=None):
         doc_ids = []
         embDoc={}
+        directory=os.path.dirname(storePath)
+        os.makedirs(directory,exist_ok=True)
         if self.compute_stats:
             stats = defaultdict(float)
         count = 0
-        with torch.no_grad():
-            for t, batch in enumerate(tqdm(collection_loader,desc="indexing")):
-                inputs = {k: v.to(self.device) for k, v in batch.items() if k not in {"id"}}
-                if self.is_query:
-                    batch_documents = self.model(q_kwargs=inputs)["q_rep"]
-                else:
-                    batch_documents = self.model(d_kwargs=inputs)["d_rep"]
-                if self.compute_stats:
-                    stats["L0_d"] += self.l0(batch_documents).item()
-                row, col = torch.nonzero(batch_documents, as_tuple=True)
+        totalCount=0
+        if not os.path.exists(storePath+"_last"):
+            with torch.no_grad():
+                for t, batch in enumerate(tqdm(collection_loader,desc="indexing")):
+                    inputs = {k: v.to(self.device) for k, v in batch.items() if k not in {"id"}}
+                    if self.is_query:
+                        batch_documents = self.model(q_kwargs=inputs)["q_rep"]
+                    else:
+                        batch_documents = self.model(d_kwargs=inputs)["d_rep"]
+                    if self.compute_stats:
+                        stats["L0_d"] += self.l0(batch_documents).item()
+                    row, col = torch.nonzero(batch_documents, as_tuple=True)
 
-                data = batch_documents[row, col].cpu().numpy().astype(np.float16)
-                row=to_list(row)
-                col=to_list(col)
-                # row = row + count
-                # print(batch["id"])
-                batch_ids = to_list(batch["id"])
-                # print(batch_ids)
-                if id_dict:
-                    batch_ids = [id_dict[x] for x in batch_ids]
-                # print(row)
-                for rowCur in row:
-                    embDoc[str(batch_ids[rowCur])]=defaultdict(float)
-                for ind,(rowCur,colCur) in enumerate(zip(row, col)):
-                    embDoc[str(batch_ids[rowCur])][colCur]=data[ind]
-        directory=os.path.dirname(storePath)
-        os.makedirs(directory,exist_ok=True)
-        with open(storePath, 'wb') as f:
-            pickle.dump({"pos_tf":embDoc}, f,protocol=pickle.HIGHEST_PROTOCOL)
+                    data = batch_documents[row, col].cpu().numpy().astype(np.float16)
+                    row=to_list(row)
+                    col=to_list(col)
+                    # row = row + count
+                    # print(batch["id"])
+                    batch_ids = to_list(batch["id"])
+                    # print(batch_ids)
+                    if id_dict:
+                        batch_ids = [id_dict[x] for x in batch_ids]
+                    # print(row)
+                    for rowCur in row:
+                        embDoc[str(batch_ids[rowCur])]=defaultdict(float)
+                    for ind,(rowCur,colCur) in enumerate(zip(row, col)):
+                        embDoc[str(batch_ids[rowCur])][colCur]=data[ind]
+                    count+=len(batch_ids)
+                    totalCount+=len(batch_ids)
+                    if count>=1000000:
+                        with open(storePath+f"_{totalCount}", 'wb') as f:
+                            pickle.dump(embDoc, f,protocol=pickle.HIGHEST_PROTOCOL)
+                        embDoc={}
+                        count=0
+            # if len(embDoc)>0:
+            with open(storePath+"_last", 'wb') as f:
+                pickle.dump(embDoc, f,protocol=pickle.HIGHEST_PROTOCOL)       
+        embDoc={}
+        filesLists=glob.glob(f"{storePath}_*")
+        for fileCur in filesLists:
+            print(f"loading data from {fileCur}")
+            with open(fileCur, 'rb') as f:
+                embDocCur = pickle.load(f)
+            embDoc={**embDoc,**embDocCur}
         return embDoc
 # %%
 model_training_config={}
@@ -84,7 +102,6 @@ docTypes=["doc"]
 dataPath="data/msmarco/"
 # dataPath="data/toy_data20/"
 # dataPath="data/toy_data1k/"
-storePath=f"{dataPath}embStats/"
 # %%
 config={}
 config["pretrained_no_yamlconfig"]=True
@@ -102,9 +119,11 @@ inputDict={
 dataset=MsMarcoHardNegatives(**inputDict)
 InverseVocab={key[1]:key[0] for ind,key in enumerate(tokenizer.vocab.items())}
 numToken=len(tokenizer.vocab.keys())
+
+subfoler="embStats"
 for docType in docTypes:
     COLLECTION_PATH=f"{dataPath}{folerNameDict[docType]}"
-    config["index_retrieve_batch_size"]=512 if docType=="query" else 96
+    config["index_retrieve_batch_size"]=512*5 if docType=="query" else 128*6
     # %%
     d_collection = CollectionDatasetPreLoad(data_dir=COLLECTION_PATH, id_style="row_id")
     d_loader = CollectionDataLoader(dataset=d_collection, tokenizer_type=model_training_config["tokenizer_type"],
@@ -117,7 +136,12 @@ for docType in docTypes:
     evaluator = SparseEmbedding(model=model, config=config, compute_stats=True)
 
     # %%
-    storePath=f"{dataPath}embStats/emb_{NameDict[docType]}.pkl"
+    storePath=f"{dataPath}{subfoler}/emb_{NameDict[docType]}.pkl"
+    # if os.path.exists(storePath):
+    #     with open(storePath, 'rb') as f:
+    #         embDoc = pickle.load(f)
+    #     print("succesful loaded embbeding")
+    # else:    
     embDoc=evaluator.emb(d_loader,storePath=storePath)
     log_tf=np.zeros(numToken)
     from collections import Counter
@@ -157,11 +181,9 @@ for docType in docTypes:
                 for token in tokenSent:
                     value=tokenSent[token]
                     logPsuedoPosdoc[qid][token]+=value
-        storePath=f"{dataPath}embStats/{NameDict[docType]}.pkl"    
+        storePath=f"{dataPath}{subfoler}/{NameDict[docType]}.pkl"    
         with open(storePath, 'wb') as f:
             pickle.dump({"corpus":log_tf,"pos_tf":logPosdoc,"psuedo_tf":logPsuedoPosdoc}, f,protocol=pickle.HIGHEST_PROTOCOL)
-    
-    
     else:  
         for idx in tqdm(embDoc,desc="processing data corpus"):
             # print(idx)
@@ -178,6 +200,6 @@ for docType in docTypes:
                     for token in tokenSent:
                         value=tokenSent[token]
                         logPosdoc[doc][token]+=value
-        storePath=f"{dataPath}embStats/{NameDict[docType]}.pkl"    
+        storePath=f"{dataPath}{subfoler}/{NameDict[docType]}.pkl"    
         with open(storePath, 'wb') as f:
             pickle.dump({"corpus":log_tf,"pos_tf":logPosdoc}, f, protocol=pickle.HIGHEST_PROTOCOL)

@@ -38,6 +38,6 @@ config:
   lambda_Query: 0
   lambda_psuedo: 0
   inBatch: 0
-  onlyTopic: true
+  # onlyTopic: true
   # q_L0_cut: 40
   # d_L0_cut: 80

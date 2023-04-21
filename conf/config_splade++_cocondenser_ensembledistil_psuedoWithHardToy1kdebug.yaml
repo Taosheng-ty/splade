@@ -24,19 +24,20 @@ config:
   checkpoint_dir: experiments/debug/checkpoint
   index_dir: experiments/debug/index
   out_dir: experiments/debug/out
-  train_batch_size: 2
-  eval_batch_size: 4
-  index_retrieve_batch_size: 4
-  max_length: 50
-  nb_iterations: 1000
-  train_monitoring_freq: 10
+  train_batch_size: 12
+  eval_batch_size: 24
+  index_retrieve_batch_size: 24
+  max_length: 256
+  nb_iterations: 4000
+  train_monitoring_freq: 100
   matching_type: splade
-  record_frequency: 100
+  record_frequency: 500
   warmup_steps: 100
   lambda_hard: 0
-  lambda_Doc: 1
+  lambda_Doc: 0
   lambda_Query: 0
   lambda_psuedo: 0
   inBatch: 0
+  # onlyTopic: true
   # q_L0_cut: 40
   # d_L0_cut: 80
