@@ -210,11 +210,11 @@ class SiameseTransformerTrainer(TransformerTrainer):
         d_pos_kwargs = parse(batch, "pos")
         d_neg_kwargs = parse(batch, "neg")
         out={**batch, **self.config}
-        # if self.only_topic:
-        #     kwargs= {"q_kwargs": q_kwargs,"only_topic":True}
+        if self.only_topic:
+            kwargs= {"q_kwargs": q_kwargs,"only_topic":True}
             
-        #     out['pos_q_rep']=self.model(**kwargs)["q_rep"]
-        #     return  out     
+            out['pos_q_rep']=self.model(**kwargs)["q_rep"]
+            return  out     
         d_pos_args = {"q_kwargs": q_kwargs, "d_kwargs": d_pos_kwargs}
         d_neg_args = {"q_kwargs": q_kwargs, "d_kwargs": d_neg_kwargs}
         if "augment_pairs" in self.config:
