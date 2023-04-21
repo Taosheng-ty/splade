@@ -106,26 +106,22 @@ class HybridLoss(DistilMarginMSE):
         if "lambda_psuedo" in out_d and  out_d["lambda_psuedo"]>0:
             # Psuedo_loss=-(out_d['pos_q_rep']*(out_d["topic_Rep"])).sum(dim=1)
             q=out_d['pos_q_rep']
-            d=out_d['pos_d_rep']
-            topic=out_d["psuedo_topic_Rep"]/(corpus+1e-10)
-            ratio=d.max().detach()/topic.max()*self.psuedo_topk
-            topic=topic*ratio+d
-            corpusCur=ratio+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
+            # d=out_d['pos_d_rep']
+            topic=out_d["psuedo_topic_Rep"]
+            corpus=out_d["cortf_Rep"]
             # Psuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
-            Psuedo_loss=self.contrastfcn(q,topic,corpusCur,self.numDocs,self.psuedo_topk+1)
+            Psuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,self.psuedo_topk)
             Psuedo_loss=Psuedo_loss.mean()
             Loss["PsuedoLoss"]=out_d["lambda_psuedo"]*Psuedo_loss
             MatchLoss+=Loss["PsuedoLoss"]
         if "lambda_Query" in out_d and out_d["lambda_Query"]>0:
             d=out_d['pos_d_rep']
             # topic=out_d["Qtopic_Rep"]
-            q=out_d['pos_q_rep']
-            topic=out_d["Qtopic_Rep"]/(qcorpus+1e-10)
-            ratio=q.max().detach()/topic.max()
-            topic=topic*ratio          
-            qcorpusCur=ratio+torch.sum(out_d['pos_q_rep'],dim=0,keepdim=True)
+            # q=out_d['pos_q_rep']
+            topic=out_d["Qtopic_Rep"] 
+            qcorpusCur=out_d["Qcortf_Rep"]
             # QPsuedo_loss=-torch.log((torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries))
-            QPsuedo_loss=self.contrastfcn(d,topic,qcorpusCur,self.numQueries,1)+self.contrastfcn(d,q,qcorpusCur,self.numQueries,1)
+            QPsuedo_loss=self.contrastfcn(d,topic,qcorpusCur,self.numQueries,1)
             QPsuedo_loss=QPsuedo_loss.mean()
             Loss["QPsuedoLoss"]=out_d["lambda_Query"]*QPsuedo_loss
             MatchLoss+=Loss["QPsuedoLoss"]            
