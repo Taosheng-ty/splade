@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 from splade.models.transformer_rep import Splade
 from splade.utils.utils import restore_model
-
+from scipy.sparse import csr_matrix,lil_matrix
 # docType=sys.argv[1]
 # assert docType in ["doc",'query'],"must be in [doc,query]"
 
@@ -100,7 +100,7 @@ model_training_config["max_length"]=256
 docTypes=['query',"doc"]
 docTypes=["doc"]
 dataPath="data/msmarco/"
-# dataPath="data/toy_data20/"
+dataPath="data/toy_data20/"
 # dataPath="data/toy_data1k/"
 # %%
 config={}
@@ -123,7 +123,7 @@ numToken=len(tokenizer.vocab.keys())
 subfoler="embStats"
 for docType in docTypes:
     COLLECTION_PATH=f"{dataPath}{folerNameDict[docType]}"
-    config["index_retrieve_batch_size"]=512*5 if docType=="query" else 128*6
+    config["index_retrieve_batch_size"]=512*5 if docType=="query" else 32
     # %%
     d_collection = CollectionDatasetPreLoad(data_dir=COLLECTION_PATH, id_style="row_id")
     d_loader = CollectionDataLoader(dataset=d_collection, tokenizer_type=model_training_config["tokenizer_type"],
@@ -151,40 +151,54 @@ for docType in docTypes:
         for token in tokenSent:
             value=tokenSent[token]
             log_tf[token]+=value
-    logPosdoc={}
-    logPsuedoPosdoc={}
+    qrels=dataset.qrels
+    UniqQ=set([int(qid) for qid in qrels]+[int(qid) for qid in dataset.scores_dict])
+    UniqQ=list(UniqQ)
+    numQ=len(UniqQ)
+    convertDict={str(key):idx for idx,key in enumerate(UniqQ)}
+    logPosdoc=lil_matrix((numQ,numToken))
+    logPsuedoPosdoc=lil_matrix((numQ,numToken))
     TopK=10
     FirstKey=list(dataset.scores_dict.keys())[0]
     convertFcn=str if isinstance(FirstKey,str) else int
-    qrels=dataset.qrels
+    
     
     if docType=="doc":
+        
+        
         for qid in tqdm(qrels,desc="processing query"):
             if convertFcn(qid) not in dataset.scores_dict:
                 continue
             posDocids=list(qrels[qid].keys())
             # if len(posDocids)>0:
-            logPosdoc[qid]=defaultdict(float)
             for doc in posDocids:
                 if qrels[qid][doc]>0:
                     tokenSent=embDoc[doc]
-                    for token in tokenSent:
-                        value=tokenSent[token]
-                        logPosdoc[qid][token]+=value
+                    keys,values=list(zip(*tokenSent.items())) 
+                    values=np.array(values).astype(np.float16)
+                    logPosdoc[convertDict[str(qid)],keys]+=values
+                    # for token in tokenSent:
+                    #     value=tokenSent[token]
+                    #     logPosdoc[qid][token]+=value
             DistillCandidates=dataset.scores_dict[convertFcn(qid)]
             DistillCandidates = sorted(DistillCandidates,key=DistillCandidates.get,reverse=True)[:TopK]
             while len(posDocids)<TopK:
                 posDocids.append(str(DistillCandidates.pop(0)))
-            logPsuedoPosdoc[qid]=defaultdict(float)
+            # logPsuedoPosdoc[qid]=defaultdict(float)
             for doc in posDocids:
                 tokenSent=embDoc[doc]
-                for token in tokenSent:
-                    value=tokenSent[token]
-                    logPsuedoPosdoc[qid][token]+=value
+                keys,values=list(zip(*tokenSent.items())) 
+                values=np.array(values).astype(np.float16)  
+                logPsuedoPosdoc[convertDict[str(qid)],keys]+=values                
+                # for token in tokenSent:
+                #     value=tokenSent[token]
+                #     logPsuedoPosdoc[qid][token]+=value
         storePath=f"{dataPath}{subfoler}/{NameDict[docType]}.pkl"    
         with open(storePath, 'wb') as f:
-            pickle.dump({"corpus":log_tf,"pos_tf":logPosdoc,"psuedo_tf":logPsuedoPosdoc}, f,protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump({"corpus":log_tf,"pos_tf":logPosdoc,"psuedo_tf":logPsuedoPosdoc,"idmap":convertDict}, f,protocol=pickle.HIGHEST_PROTOCOL)
     else:  
+        
+        ### todo: use sparse for query approx.
         for idx in tqdm(embDoc,desc="processing data corpus"):
             # print(idx)
             tokenSent=embDoc[idx]
@@ -195,11 +209,8 @@ for docType in docTypes:
                 continue
             for doc in qrels[idx]:
                 if qrels[idx][doc]>0:
-                    if doc not in logPosdoc:
-                        logPosdoc[doc]=defaultdict(float)
-                    for token in tokenSent:
-                        value=tokenSent[token]
-                        logPosdoc[doc][token]+=value
+                    keys,values=list(zip(*tokenSent.items())) 
+                    logPsuedoPosdoc[convertDict[str(idx)],keys]+=values   
         storePath=f"{dataPath}{subfoler}/{NameDict[docType]}.pkl"    
         with open(storePath, 'wb') as f:
             pickle.dump({"corpus":log_tf,"pos_tf":logPosdoc}, f, protocol=pickle.HIGHEST_PROTOCOL)
