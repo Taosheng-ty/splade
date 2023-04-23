@@ -175,44 +175,52 @@ class MsMarcoHardNegativesWithPsuedo(MsMarcoHardNegatives):
         super().__init__(*param,**kwparam)
         with open(corpusStatsPath, 'rb') as f:
             CorpusStats=pickle.load(f)
-        self.corpus_tf,self.doc_tf,self.psuedo_doc_tf=CorpusStats["corpus"],CorpusStats["pos_tf"],CorpusStats["psuedo_tf"]   
+        self.posCourpus,self.psuedoPosCorpus,self.idmap=CorpusStats["posCourpus"] ,CorpusStats["psuedoPosCorpus"],CorpusStats["idmap"]
         with open (queryStatsPath, 'rb') as f:
             QueryStats=pickle.load(f)
-        if self.psuedo_doc_tf is None:
-            self.psuedo_doc_tf=self.doc_tf
-        self.Qcorpus_tf,self.Qquery_tf=QueryStats["corpus"],QueryStats["pos_tf"]
-        # self.cortf_Rep=self.cortf_Rep.type(torch.float32).cpu().numpy()
+        self.QposCourpus,self.Qidmap=QueryStats["posCourpus"] ,QueryStats["idmap"]
         numDocs=len(self.document_dataset)
         self.psuedo_topk=psuedo_topk
         self.numDocs=numDocs
-        self.numVocab=len(self.corpus_tf)
-        # self.ratio=np.sqrt(self.numDocs*self.psuedo_topk)  # avoid overflow 
-        self.Qcorpus_tf=self.Qcorpus_tf.astype(np.float32)
-        self.corpus_tf=self.corpus_tf.astype(np.float32)
+        # self.numVocab=len(self.corpus)
+        # self.Qcorpus=torch.from_numpy(self.Qcorpus.astype(np.float16))
+        # self.corpus=torch.from_numpy(self.corpus.astype(np.float16))
+        # self.Qcorpus2ndSparse=self.convert2SparseTensor(self.Qcorpus2ndSparse)
+        # self.corpus2ndSparse=self.convert2SparseTensor(self.corpus2ndSparse)
     def __len__(self):
         return len(self.query_list)
-    def convert_sparse2Dense(self,sparseRep):
-        ind=list(sparseRep.keys())
-        values=list(sparseRep.values())   
-        DenseRep=np.zeros(self.numVocab).astype(np.float32)
-        DenseRep[:]=0
-        DenseRep[ind]=values   
-        return DenseRep
+    # def convert_sparse2Dense(self,sparseRep):
+    #     ind=list(sparseRep.keys())
+    #     values=list(sparseRep.values())   
+    #     DenseRep=np.zeros(self.numVocab).astype(np.float16)
+    #     DenseRep[:]=0
+    #     DenseRep[ind]=values   
+    #     return DenseRep
+    def convert2SparseTensor(self,coo):
+        values = coo.data
+        indices = np.vstack((coo.row, coo.col))
+
+        i = torch.LongTensor(indices)
+        v = torch.FloatTensor(values)
+        shape = coo.shape
+
+        SparseTensor=torch.sparse.FloatTensor(i, v, torch.Size(shape))
+        return SparseTensor
         
     def __getitem__(self, idx):
         q,d_pos,d_neg,s_pos,s_neg,positive=super().__getitem__(idx,returnId=True)
         
-        querySparse=self.Qquery_tf[positive]
-        topicRep=self.convert_sparse2Dense(querySparse)
+        querySparse=self.QposCourpus[self.Qidmap[str(positive)]]
+        topicRep=querySparse.toarray()[0]
         
         query = self.query_list[idx]
-        docSparse=self.doc_tf[str(query)]
-        docRep=self.convert_sparse2Dense(docSparse)
+        posCourpus=self.posCourpus[self.idmap[str(query)]]
+        docRep=posCourpus.toarray()[0]
         
-        psuedoDocSparse=self.psuedo_doc_tf[str(query)]
-        psuedoDocRep=self.convert_sparse2Dense(psuedoDocSparse)
+        psuedoPosCorpus=self.psuedoPosCorpus[self.idmap[str(query)]]
+        psuedoDocRep=psuedoPosCorpus.toarray()[0]
         
         
         s_pos,s_neg=s_pos,s_neg
         
-        return q,d_pos,d_neg,s_pos,s_neg,self.Qcorpus_tf,topicRep,self.corpus_tf,docRep,psuedoDocRep
+        return q,d_pos,d_neg,s_pos,s_neg,topicRep,docRep,psuedoDocRep

@@ -3,7 +3,7 @@ defaults: # (these specify which config FILES to use)
   ############## TRAIN ###################################
   - train/config: splade_monogpu
   - train/data: distil_from_ensemblePsuedoToy20
-  - train/model: splade_cocondenser
+  - train/model: separate_splade_cocondenser_trained
   ############## INDEX ###################################
   - index: toy
   ############## RETRIEVE ################################
@@ -24,18 +24,24 @@ config:
   checkpoint_dir: experiments/debug/checkpoint
   index_dir: experiments/debug/index
   out_dir: experiments/debug/out
-  train_batch_size: 10
-  eval_batch_size: 32
-  index_retrieve_batch_size: 32
+  train_batch_size: 6
+  eval_batch_size: 16
+  index_retrieve_batch_size: 16
   max_length: 96
   nb_iterations: 1000
   train_monitoring_freq: 10
-  matching_type: splade
+  matching_type: DebugSplade
   record_frequency: 100
   warmup_steps: 100
   lambda_hard: 0
-  lambda_Doc: 0
-  lambda_Query: 0
+  lambda_Doc: 1
+  lambda_Query: 1
   lambda_psuedo: 0
+  inBatch: 0
+  contrast: contrastv1
+init_dict:
+  dataStatusFile: 'data/toy_data20/embStats/globalStatus.pkl'
+  fp16: false
+  # onlyTopic: true
   # q_L0_cut: 40
   # d_L0_cut: 80

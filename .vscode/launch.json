@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "splade.all",
             "justMyCode": true,
-            "env": {"CUDA_VISIBLE_DEVICES":"1","SPLADE_CONFIG_NAME":"config_splade++_cocondenser_ensembledistil_psuedoWithHardToy1kdebug"}
+            "env": {"CUDA_VISIBLE_DEVICES":"0","SPLADE_CONFIG_NAME":"config_splade++_cocondenser_ensembledistil_psuedoWithHardToy"}
         },
         {
             "name": "Python: Current File",

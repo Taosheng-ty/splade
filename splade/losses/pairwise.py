@@ -82,12 +82,17 @@ class HybridLoss(DistilMarginMSE):
             contrastfcns={"contrast":self.contrast,"contrastv1":self.contrastv1}
             self.contrastfcn=contrastfcns[kwparam["contrast"]]
         super().__init__(*param,**kwparam)
-    def contrast(self,q_rep,topic,corpus,numDocs,numQ=1):
+    def contrast(self,q_rep,topic,corpus,numDocs,numQ=1,*param,**kwparam):
         # loss=-torch.log((torch.sum(q_rep * topic, dim=-1)+numQ)/(torch.sum(q_rep * corpus, dim=-1)+numDocs))
         loss=-torch.log(torch.sum(q_rep * topic, dim=-1)/numQ+1)+torch.log((torch.sum(q_rep * corpus, dim=-1)/numDocs+1))
         return loss
-    def contrastv1(self,q_rep,topic,corpus,numDocs,numQ=1):
-        loss=-((torch.sum(q_rep * topic, dim=-1)/numQ)-(torch.sum(q_rep * corpus, dim=-1)/numDocs))
+    def contrastv1(self,q_rep,topic,corpus,numDocs,numQ=1,corpus2nd=None,*param,**kwparam):
+        score=torch.sum(q_rep * topic, dim=-1,keepdim=True)
+        corpusScore1stOrder=torch.sum(q_rep * corpus, dim=-1,keepdim=True)
+        corpusScore2ndTemp= torch.sparse.mm(corpus2nd,q_rep.T)
+        secondordSum=torch.sum(corpusScore2ndTemp.T*q_rep,-1,keepdim=True)
+        
+        loss=-torch.log(1+score+1/2*score**2)+torch.log(numDocs+corpusScore1stOrder+1/2*secondordSum)
         return loss
     def __call__(self, out_d):
         """out_d also contains scores from teacher
@@ -95,10 +100,10 @@ class HybridLoss(DistilMarginMSE):
         # assert "lambda_psuedo" in out_d and "lambda_hard" in out_d
         Loss={}
         MatchLoss=0
-        # corpus=out_d["cortf_Rep"]+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
-        # qcorpus=out_d["Qcortf_Rep"]+torch.sum(out_d['pos_q_rep'],dim=0,keepdim=True)
-        corpus=out_d["cortf_Rep"]
-        qcorpus=out_d["Qcortf_Rep"]
+        # corpus=out_d["corpus"]+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
+        # qcorpus=out_d["Qcorpus"]+torch.sum(out_d['pos_q_rep'],dim=0,keepdim=True)
+        # corpus=out_d["corpus"]
+        # qcorpus=out_d["Qcorpus"]
         if "lambda_hard" in out_d  and out_d["lambda_hard"]>0:
             HardLoss=super().__call__(out_d)
             Loss["HardLoss"]=out_d["lambda_hard"]*HardLoss
@@ -107,8 +112,8 @@ class HybridLoss(DistilMarginMSE):
             # Psuedo_loss=-(out_d['pos_q_rep']*(out_d["topic_Rep"])).sum(dim=1)
             q=out_d['pos_q_rep']
             # d=out_d['pos_d_rep']
-            topic=out_d["psuedo_topic_Rep"]
-            corpus=out_d["cortf_Rep"]
+            topic=out_d["psuedoDocRep"]
+            corpus=out_d["corpus"]
             # Psuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+self.psuedo_topk)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
             Psuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,self.psuedo_topk)
             Psuedo_loss=Psuedo_loss.mean()
@@ -116,27 +121,28 @@ class HybridLoss(DistilMarginMSE):
             MatchLoss+=Loss["PsuedoLoss"]
         if "lambda_Query" in out_d and out_d["lambda_Query"]>0:
             d=out_d['pos_d_rep']
-            # topic=out_d["Qtopic_Rep"]
+            # topic=out_d["topicRep"]
             # q=out_d['pos_q_rep']
-            topic=out_d["Qtopic_Rep"] 
-            qcorpusCur=out_d["Qcortf_Rep"]
-            # QPsuedo_loss=-torch.log((torch.sum(d * topic, dim=-1)+1)/(torch.sum(d * corpus, dim=-1)+self.numQueries))
-            QPsuedo_loss=self.contrastfcn(d,topic,qcorpusCur,self.numQueries,1)
+            topic=out_d["topicRep"] 
+            qcorpusCur=out_d["model"].q_corpus
+            q_corpus2ndSparse=out_d["model"].q_corpus2ndSparse
+            QPsuedo_loss=self.contrastfcn(d,topic,qcorpusCur,self.numQueries,1,corpus2nd=q_corpus2ndSparse)
             QPsuedo_loss=QPsuedo_loss.mean()
             Loss["QPsuedoLoss"]=out_d["lambda_Query"]*QPsuedo_loss
             MatchLoss+=Loss["QPsuedoLoss"]            
         if "lambda_Doc" in out_d and out_d["lambda_Doc"]>0:
-            #  "topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep,"psuedo_topic_Rep":psuedo_topic_Rep
+            #  "topic_Rep":topic_Rep,"corpus":corpus,"psuedoDocRep":psuedoDocRep
             q=out_d['pos_q_rep']
             # d=out_d['pos_d_rep']
             # topic=out_d["topic_Rep"]
-            topic=out_d["topic_Rep"]
-            corpus=out_d["cortf_Rep"]
+            topic=out_d["docRep"]
+            corpus=out_d["model"].d_corpus
+            d_corpus2ndSparse=out_d["model"].d_corpus2ndSparse
             # ratio=d.max().detach()/topic.max()
             # topic=topic*ratio          
             # corpusCur=ratio+torch.sum(out_d['pos_d_rep'],dim=0,keepdim=True)+torch.sum(out_d['neg_d_rep'],dim=0,keepdim=True)
             # DPsuedo_loss=-torch.log((torch.sum(q * topic, dim=-1)+1)/(torch.sum(q * corpus, dim=-1)+self.numDocs))
-            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1)
+            DPsuedo_loss=self.contrastfcn(q,topic,corpus,self.numDocs,1,corpus2nd=d_corpus2ndSparse)
             DPsuedo_loss=DPsuedo_loss.mean()
             Loss["DPsuedoLoss"]=out_d["lambda_Doc"]*DPsuedo_loss
             MatchLoss+=Loss["DPsuedoLoss"] 

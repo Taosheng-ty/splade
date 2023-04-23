@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModel
 from ..tasks.amp import NullContextManager
 from ..utils.utils import generate_bow, normalize
 import pickle
+import numpy as np
 """
 we provide abstraction classes from which we can easily derive representation-based models with transformers like SPLADE
 with various options (one or two encoders, freezing one encoder etc.) 
@@ -276,53 +277,33 @@ class Exclude_CLS_SEP_Splade(Splade):
 class DebugSplade(Splade):
     """SPLADE model
     """
-    def __init__(self,*param,**kwparam):
+    def __init__(self,dataStatusFile=None,*param,**kwparam):
         super().__init__(*param,**kwparam)
-    def encode(self, tokens, is_q):
-        out =  self.encode_(tokens, is_q)["logits"]+20  # shape (bs, pad_len, voc_size)
-        # out=out[:,1:-1,:]  ##cls and SEP usually cause much error
-        if self.agg == "sum":
-            return torch.sum(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
-        else:
-            # values, _ = torch.max(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
-            # argmax=torch.argmax(torch.log(1 + torch.relu(out)) * tokens["attention_mask"].unsqueeze(-1), dim=1)
-            values, _ = torch.max( torch.relu(out) * tokens["attention_mask"].unsqueeze(-1), dim=1)
-            argmax=torch.argmax(torch.relu(out) * tokens["attention_mask"].unsqueeze(-1), dim=1)
-            return values,argmax
-    def forward(self, **kwargs):
-        """forward takes as inputs 1 or 2 dict
-        "d_kwargs" => contains all inputs for document encoding
-        "q_kwargs" => contains all inputs for query encoding ([OPTIONAL], e.g. for indexing)
-        """
-        with torch.cuda.amp.autocast() if self.fp16 else NullContextManager():
-            out = {}
-            do_d, do_q = "d_kwargs" in kwargs, "q_kwargs" in kwargs
-            if do_q:
-                q_rep, argmax = self.encode(kwargs["q_kwargs"], is_q=True)
-                if self.cosine:  # normalize embeddings
-                    q_rep = normalize(q_rep)
-                out.update({"q_rep": q_rep})
-                out.update({"argmax": argmax})
-            if "only_topic" in kwargs and kwargs["only_topic"]:
-                return out
-            if do_d:
-                d_rep,argmax = self.encode(kwargs["d_kwargs"], is_q=False)
-                if self.cosine:  # normalize embeddings
-                    d_rep = normalize(d_rep)
-                out.update({"d_rep": d_rep})
-                out.update({"argmax": argmax})
+        if dataStatusFile:
+            with open (dataStatusFile, 'rb') as f:
+                dataStatus=pickle.load(f)
+            q_corpus,q_corpus2ndSparse=dataStatus["q_corpus"],dataStatus["q_corpus2ndSparse"]
+            d_corpus,d_corpus2ndSparse=dataStatus["d_corpus"],dataStatus["d_corpus2ndSparse"]
+            q_corpus=q_corpus.astype(np.float32)
+            q_corpus=torch.from_numpy(q_corpus)
+            self.q_corpus=torch.nn.parameter.Parameter(q_corpus,requires_grad=False)
+            q_corpus2ndSparse=self.convert2SparseTensor(q_corpus2ndSparse)
+            self.q_corpus2ndSparse=torch.nn.parameter.Parameter(q_corpus2ndSparse,requires_grad=False)
+            
+            d_corpus=d_corpus.astype(np.float32)
+            d_corpus=torch.from_numpy(d_corpus)
+            self.d_corpus=torch.nn.parameter.Parameter(d_corpus,requires_grad=False)
+            d_corpus2ndSparse=self.convert2SparseTensor(d_corpus2ndSparse)
+            self.d_corpus2ndSparse=torch.nn.parameter.Parameter(d_corpus2ndSparse,requires_grad=False)            
 
-            if do_d and do_q:
-                if "nb_negatives" in kwargs:
-                    # in the cas of negative scoring, where there are several negatives per query
-                    bs = q_rep.shape[0]
-                    d_rep = d_rep.reshape(bs, kwargs["nb_negatives"], -1)  # shape (bs, nb_neg, out_dim)
-                    q_rep = q_rep.unsqueeze(1)  # shape (bs, 1, out_dim)
-                    score = torch.sum(q_rep * d_rep, dim=-1)  # shape (bs, nb_neg)
-                else:
-                    if "score_batch" in kwargs:
-                        score = torch.matmul(q_rep, d_rep.t())  # shape (bs_q, bs_d)
-                    else:
-                        score = torch.sum(q_rep * d_rep, dim=1, keepdim=True)  # shape (bs, )
-                out.update({"score": score})
-        return out
+    def convert2SparseTensor(self,coo):
+        values = coo.data
+        indices = np.vstack((coo.row, coo.col))
+
+        i = torch.LongTensor(indices)
+        v = torch.FloatTensor(values)
+        shape = coo.shape
+
+        SparseTensor=torch.sparse.FloatTensor(i, v, torch.Size(shape))
+        return SparseTensor        
+        

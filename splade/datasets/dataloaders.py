@@ -87,12 +87,14 @@ class      DistilSiamesePairsDataLoaderWithPsuedo(DataLoaderWrapper):
     def collate_fn(self, batch):
         """
         """
-        q, d_pos, d_neg, s_pos, s_neg ,Qcortf_Rep,Qtopic_Rep,cortf_Rep, topic_Rep,psuedo_topic_Rep= zip(*batch)
-        topic_Rep=np.stack(topic_Rep)
-        cortf_Rep=np.stack(cortf_Rep)
-        Qtopic_Rep=np.stack(Qtopic_Rep)
-        Qcortf_Rep=np.stack(Qcortf_Rep)
-        psuedo_topic_Rep=np.stack(psuedo_topic_Rep)
+        q, d_pos, d_neg, s_pos, s_neg ,topicRep, docRep,psuedoDocRep= zip(*batch)
+        topicRep=np.stack(topicRep)
+        docRep=np.stack(docRep)
+        psuedoDocRep=np.stack(psuedoDocRep)
+        # corpus=self.dataset.corpus
+        # Qcorpus=self.dataset.Qcorpus
+        # Qcorpus2ndSparse=self.dataset.Qcorpus2ndSparse
+        # corpus2ndSparse=self.dataset.corpus2ndSparse
         q = self.tokenizer(list(q),
                            add_special_tokens=True,
                            padding="longest",  # pad to max sequence length in batch
@@ -115,8 +117,10 @@ class      DistilSiamesePairsDataLoaderWithPsuedo(DataLoaderWrapper):
 
         sample = {**rename_keys(q, "q"), **rename_keys(d_pos, "pos"), **rename_keys(d_neg, "neg"),
                   "teacher_p_score": s_pos, "teacher_n_score": s_neg,\
-                      "topic_Rep":topic_Rep,"cortf_Rep":cortf_Rep,"psuedo_topic_Rep":psuedo_topic_Rep,\
-                        "Qtopic_Rep":Qtopic_Rep,"Qcortf_Rep":Qcortf_Rep}
+                      "topicRep":topicRep,"docRep":docRep,"psuedoDocRep":psuedoDocRep,\
+                        # "corpus":corpus,"Qcorpus":Qcorpus
+                        }
+                        # "corpus2ndSparse":corpus2ndSparse,"Qcorpus2ndSparse":Qcorpus2ndSparse}
         output={}
         for k, v in sample.items():
             if torch.is_tensor(v):

@@ -46,6 +46,7 @@ class TransformerTrainer(TrainerIter):
 
     def train_iterations(self):
         moving_avg_ranking_loss = 0
+        self.fp16=False
         mpm = amp.MixedPrecisionManager(self.fp16)
         self.optimizer.zero_grad()
         q_L0_cutMask=1
@@ -64,6 +65,7 @@ class TransformerTrainer(TrainerIter):
                 for k, v in batch.items():
                     batch[k] = v.to(self.device)
                 out = self.forward(batch)  # out is a dict (we just feed it to the loss)
+                out["model"]=self.model
                 AllMatchLoss=self.loss(out)
                 if isinstance(AllMatchLoss,dict):
                     assert "MatchLoss" in AllMatchLoss,"MatchLoss is the loss to take gradient"
